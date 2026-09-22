@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Flashcards. The A* Mentor</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><circle cx=%2250%22 cy=%2250%22 r=%2242%22 fill=%22%237a2436%22/></svg>" />
+<script>
+  (function () { try { var t = localStorage.getItem('a_star_theme'); if (t === 'light' || t === 'dark') document.documentElement.setAttribute('data-theme', t); } catch (e) {} })();
+</script>
+<link rel="stylesheet" href="styles.css" />
+<style>
+  .flashcard {
+    perspective: 1400px;
+    height: 260px;
+  }
+  .flashcard-inner {
+    position: relative; width: 100%; height: 100%;
+    transition: transform 0.5s cubic-bezier(0.22, 1, 0.36, 1);
+    transform-style: preserve-3d;
+  }
+  .flashcard.flipped .flashcard-inner { transform: rotateY(180deg); }
+  .flashcard-face {
+    position: absolute; inset: 0; backface-visibility: hidden;
+    border-radius: var(--radius); border: 1px solid var(--line); background: var(--panel);
+    box-shadow: var(--shadow); display: flex; flex-direction: column; align-items: center; justify-content: center;
+    padding: 28px; text-align: center;
+  }
+  .flashcard-face.back { transform: rotateY(180deg); overflow-y: auto; align-items: stretch; text-align: left; }
+</style>
+</head>
+<body>
+<div class="app-shell">
+  <div id="sidebarMount"></div>
+  <main class="main-col">
+    <div class="main-inner" style="max-width:680px;">
+
+      <div class="page-header">
+        <div class="page-eyebrow">Memory tool</div>
+        <h1 class="page-title">Flashcards</h1>
+        <p class="page-sub">A spaced-repetition queue across the full specification. Rate your recall honestly and it schedules your next review automatically.</p>
+      </div>
+
+      <div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap;" id="subjectFilters"></div>
+
+      <div class="grid grid-3" style="margin-bottom:20px;">
+        <div class="stat-tile"><div class="label">Due now</div><div class="value" id="statDue">0</div></div>
+        <div class="stat-tile"><div class="label">Reviewed today</div><div class="value" id="statReviewed">0</div></div>
+        <div class="stat-tile"><div class="label">In this queue</div><div class="value" id="statQueue">0</div></div>
+      </div>
+
+      <div id="cardArea"></div>
+      <div id="emptyState" style="display:none;" class="card card-pad fade-in" style="text-align:center;">
+        <p style="font-family:var(--font-display);font-size:17px;font-weight:600;margin:0 0 6px;">All caught up</p>
+        <p style="font-size:13px;color:var(--ink3);margin:0;">Nothing is due for review in this filter right now. Come back later, or widen your filter.</p>
+      </div>
+
+      <footer class="site-foot">The A* Mentor. Your study data stays in your browser's local storage.</footer>
+    </div>
+  </main>
+</div>
+
+<script src="mentor-shared.js"></script>
+<script src="nav.js"></script>
+<script src="tutor-engine.js"></script>
+<script>
+(function () {
+  'use strict';
+  const M = window.MentorShared;
+  let state = M.loadState();
+  let activeSubject = 'all';
+  let queue = [];
+  let currentIndex = 0;
+  let reviewedToday = 0;
+  let flipped = false;
+
+  function buildQueue() {
+    let leaves = M.ALL_LEAVES.slice();
+    if (activeSubject !== 'all') leaves = leaves.filter(l => l.subject === activeSubject);
+    const due = leaves.filter(l => M.isDueForReview(state.syllabus[l.subject][l.topicName][l.leafName]));
+    due.sort((a, b) => {
+      const la = state.syllabus[a.subject][a.topicName][a.leafName];
+      const lb = state.syllabus[b.subject][b.topicName][b.leafName];
+      const aNever = la.srsDue ? 1 : 0;
+      const bNever = lb.srsDue ? 1 : 0;
+      if (aNever !== bNever) return aNever - bNever;
+      return (la.srsDue || 0) - (lb.srsDue || 0);
+    });
+    queue = due;
+    currentIndex = 0;
+  }
+
+  function renderFilters() {
+    const options = [{ value: 'all', label: 'All subjects' }].concat(Object.keys(M.SYLLABUS).map(s => ({ value: s, label: M.SYLLABUS[s].label })));
+    document.getElementById('subjectFilters').innerHTML = options.map(o => `
+      <button type="button" class="chip" data-val="${o.value}" style="${o.value === activeSubject ? 'border-color:var(--burgundy-light);color:var(--burgundy-light);' : ''}">${o.label}</button>
+    `).join('');
+  }
+  document.getElementById('subjectFilters').addEventListener('click', (e) => {
+    const btn = e.target.closest('[data-val]');
+    if (!btn) return;
+    activeSubject = btn.dataset.val;
+    renderFilters();
+    buildQueue();
+    renderCard();
+  });
+
+  function findKnowledgeEntry(l) {
+    if (!window.TutorEngine) return null;
+    return window.TutorEngine.KNOWLEDGE.find(e => e.subject === l.subject && e.topic === l.topicName && e.leaf === l.leafName) || null;
+  }
+
+  function renderStats() {
+    document.getElementById('statDue').textContent = String(queue.length - currentIndex);
+    document.getElementById('statReviewed').textContent = String(reviewedToday);
+    document.getElementById('statQueue').textContent = String(queue.length);
+  }
+
+  function renderCard() {
+    renderStats();
+    const cardArea = document.getElementById('cardArea');
+    const emptyState = document.getElementById('emptyState');
+    if (currentIndex >= queue.length) {
+      cardArea.innerHTML = '';
+      emptyState.style.display = 'block';
+      return;
+    }
+    emptyState.style.display = 'none';
+    flipped = false;
+    const l = queue[currentIndex];
+    const knowledge = findKnowledgeEntry(l);
+    const leafState = state.syllabus[l.subject][l.topicName][l.leafName];
+
+    cardArea.innerHTML = `
+      <div class="flashcard fade-in" id="flashcard">
+        <div class="flashcard-inner">
+          <div class="flashcard-face front">
+            <p style="font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;color:var(--${M.SYLLABUS[l.subject].accent});margin:0 0 10px;">${M.SUBJECT_LABELS[l.subject]} &middot; ${M.escapeHtml(l.topicName)}</p>
+            <p style="font-family:var(--font-display);font-size:22px;font-weight:600;margin:0 0 14px;">${M.escapeHtml(l.leafName)}</p>
+            <p style="font-size:12.5px;color:var(--ink3);margin:0;">Explain this from memory, then tap to reveal.</p>
+            <button type="button" class="btn btn-primary btn-sm" id="btnFlip" style="margin-top:18px;">Reveal</button>
+          </div>
+          <div class="flashcard-face back">
+            <p style="font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;color:var(--${M.SYLLABUS[l.subject].accent});margin:0 0 8px;">${M.escapeHtml(l.leafName)}</p>
+            ${knowledge ? `<p class="prose-serif" style="font-size:13px;flex:1;">${M.escapeHtml(knowledge.explain)}</p>` : `<p class="prose-serif" style="font-size:13px;color:var(--ink3);">No model answer stored for this point. Rate purely on how confidently you recalled it.</p>`}
+          </div>
+        </div>
+      </div>
+      <div id="ratingRow" style="display:none;gap:8px;margin-top:16px;" class="grid grid-4">
+        <button type="button" class="btn btn-outline" data-rating="again" style="border-color:var(--danger);color:var(--danger);">Again</button>
+        <button type="button" class="btn btn-outline" data-rating="hard" style="border-color:var(--warn);color:var(--warn);">Hard</button>
+        <button type="button" class="btn btn-outline" data-rating="good" style="border-color:var(--ok);color:var(--ok);">Good</button>
+        <button type="button" class="btn btn-primary" data-rating="easy">Easy</button>
+      </div>
+      <p style="font-size:11px;color:var(--ink3);text-align:center;margin-top:10px;">Card ${currentIndex + 1} of ${queue.length}${leafState.srsReviews ? ` &middot; reviewed ${leafState.srsReviews} time${leafState.srsReviews === 1 ? '' : 's'} before` : ' &middot; first time seeing this'}</p>
+    `;
+
+    document.getElementById('btnFlip').addEventListener('click', () => {
+      document.getElementById('flashcard').classList.add('flipped');
+      document.getElementById('ratingRow').style.display = 'grid';
+    });
+  }
+
+  document.getElementById('cardArea').addEventListener('click', (e) => {
+    const btn = e.target.closest('[data-rating]');
+    if (!btn) return;
+    const l = queue[currentIndex];
+    const leafState = state.syllabus[l.subject][l.topicName][l.leafName];
+    M.scheduleReview(leafState, btn.dataset.rating);
+    M.saveState(state);
+    reviewedToday++;
+    currentIndex++;
+    renderCard();
+  });
+
+  renderFilters();
+  buildQueue();
+  renderCard();
+})();
+</script>
+</body>
+</html>

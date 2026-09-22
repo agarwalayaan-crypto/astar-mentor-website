@@ -3,8 +3,8 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>AI Tutor — The A* Mentor</title>
-<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🎓</text></svg>" />
+<title>AI Tutor. The A* Mentor</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><circle cx=%2250%22 cy=%2250%22 r=%2242%22 fill=%22%237a2436%22/></svg>" />
 <script>
   (function () { try { var t = localStorage.getItem('a_star_theme'); if (t === 'light' || t === 'dark') document.documentElement.setAttribute('data-theme', t); } catch (e) {} })();
 </script>
@@ -27,11 +27,11 @@
 
       <div class="page-header" style="display:flex;justify-content:space-between;align-items:flex-end;flex-wrap:wrap;gap:10px;">
         <div>
-          <div class="page-eyebrow">🎓 AI Tutor</div>
+          <div class="page-eyebrow">AI tutor</div>
           <h1 class="page-title">Ask Claude</h1>
           <p class="page-sub">Reads your live study state. Attach a photo of a question, run a past paper, or ask for homework.</p>
         </div>
-        <span class="badge badge-neutral" id="engineBadge">Checking connection…</span>
+        <span class="badge badge-neutral" id="engineBadge">Checking connection</span>
       </div>
 
       <div id="suggestionRow" style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:14px;"></div>
@@ -42,22 +42,22 @@
         <div id="imagePreviewRow" style="display:none;gap:8px;padding:0 16px;"></div>
 
         <form id="chatForm" style="border-top:1px solid var(--line);padding:12px 14px;display:flex;align-items:center;gap:8px;">
-          <button type="button" id="btnAttachImage" class="btn btn-ghost btn-sm" title="Attach an image">📎</button>
+          <button type="button" id="btnAttachImage" class="btn btn-ghost btn-sm" title="Attach an image">Image</button>
           <input id="imageFileInput" type="file" accept="image/*" multiple style="display:none;" />
-          <input id="chatInput" type="text" class="input" autocomplete="off" placeholder="Ask about a topic, request homework, or say 'run through paper 1 with me'…" style="flex:1;" />
+          <input id="chatInput" type="text" class="input" autocomplete="off" placeholder="Ask about a topic, request homework, or say run through paper 1 with me" style="flex:1;" />
           <button type="submit" class="btn btn-primary">Send</button>
         </form>
       </section>
 
       <details style="margin-top:16px;">
-        <summary style="cursor:pointer;font-size:12px;font-weight:700;color:var(--ink3);">⚙️ Connection settings</summary>
-        <div class="card card-pad fade-in" style="margin-top:10px;font-size:12.5px;color:var(--ink2);line-height:1.6;">
-          <p style="margin:0 0 8px;">This page talks to your own server at <code id="apiUrlDisplay" style="font-family:var(--font-mono);"></code>. If that server has <code style="font-family:var(--font-mono);">ANTHROPIC_API_KEY</code> configured, you get real Claude responses. If it's unreachable or not yet configured, this page automatically falls back to a built-in offline Mentor Engine covering all 26 syllabus topics.</p>
+        <summary style="cursor:pointer;font-size:11.5px;font-weight:700;color:var(--ink3);">Connection details</summary>
+        <div class="card card-pad fade-in" style="margin-top:10px;font-size:12px;color:var(--ink2);line-height:1.6;">
+          <p style="margin:0 0 8px;">This page talks to your own server at <code id="apiUrlDisplay" style="font-family:var(--font-mono);"></code>, which holds the Claude API key. If that server is unreachable, this page automatically falls back to a built-in offline engine covering a curated set of topics.</p>
           <p style="margin:0;">See the project README for how to set <code style="font-family:var(--font-mono);">ANTHROPIC_API_KEY</code> on Render.</p>
         </div>
       </details>
 
-      <footer class="site-foot">The A* Mentor — chat history stays in your browser's local storage.</footer>
+      <footer class="site-foot">The A* Mentor. Chat history stays in your browser's local storage.</footer>
     </div>
   </main>
 </div>
@@ -69,7 +69,7 @@
 (function () {
   'use strict';
   const M = window.MentorShared;
-  const CHAT_STORAGE_KEY = 'a_star_tutor_chat_v1';
+  const CHAT_STORAGE_KEY = 'a_star_tutor_chat_v2';
   const API_URL = '/api/chat';
   document.getElementById('apiUrlDisplay').textContent = location.origin + API_URL;
 
@@ -80,17 +80,18 @@
   const engineBadge = document.getElementById('engineBadge');
   const imagePreviewRow = document.getElementById('imagePreviewRow');
 
-  let pendingImages = []; // [{mediaType, data, name}]
+  let pendingImages = [];
   let backendAvailable = null;
 
-  function loadChatHistory() {
-    try { const raw = localStorage.getItem(CHAT_STORAGE_KEY); return raw ? JSON.parse(raw) : []; }
-    catch (e) { return []; }
-  }
-  function saveChatHistory(history) {
-    try { localStorage.setItem(CHAT_STORAGE_KEY, JSON.stringify(history.slice(-200))); } catch (e) {}
-  }
+  function loadChatHistory() { try { const raw = localStorage.getItem(CHAT_STORAGE_KEY); return raw ? JSON.parse(raw) : []; } catch (e) { return []; } }
+  function saveChatHistory(history) { try { localStorage.setItem(CHAT_STORAGE_KEY, JSON.stringify(history.slice(-200))); } catch (e) {} }
   let chatHistory = loadChatHistory();
+
+  function extractHomeworkFence(text) {
+    const match = text.match(/```homework\s*([\s\S]*?)```/i);
+    if (!match) return [];
+    return match[1].split(/\r?\n/).map(l => l.trim()).filter(Boolean);
+  }
 
   function renderMessage(msg) {
     const isUser = msg.role === 'user';
@@ -102,9 +103,9 @@
     bubble.className = 'msg-bubble';
     bubble.style.borderRadius = '16px';
     bubble.style.padding = '10px 14px';
-    bubble.style.fontSize = '13.5px';
+    bubble.style.fontSize = '13px';
     if (isUser) {
-      bubble.style.background = 'var(--brand)';
+      bubble.style.background = 'var(--burgundy)';
       bubble.style.color = '#fff';
       bubble.style.borderBottomRightRadius = '4px';
       bubble.textContent = msg.text;
@@ -113,7 +114,7 @@
       bubble.style.border = '1px solid var(--line)';
       bubble.style.borderBottomLeftRadius = '4px';
       bubble.classList.add('prose-serif');
-      bubble.style.fontSize = '14px';
+      bubble.style.fontSize = '13.5px';
       bubble.textContent = msg.text;
     }
     wrap.appendChild(bubble);
@@ -128,12 +129,12 @@
         const btn = document.createElement('button');
         btn.type = 'button';
         btn.className = 'btn btn-primary btn-sm';
-        btn.textContent = `➕ Add ${homeworkLines.length} task${homeworkLines.length === 1 ? '' : 's'} to my Homework List`;
+        btn.textContent = `Add ${homeworkLines.length} task${homeworkLines.length === 1 ? '' : 's'} to my homework list`;
         btn.addEventListener('click', () => {
           const state = M.loadState();
-          homeworkLines.forEach(line => state.homework.push({ id: M.uid(), text: line, done: false }));
+          homeworkLines.forEach(line => state.homework.push({ id: M.uid(), text: line, done: false, priority: 'medium', estMinutes: null }));
           M.saveState(state);
-          btn.textContent = '✅ Added to Homework List';
+          btn.textContent = 'Added to homework list';
           btn.disabled = true;
         });
         btnWrap.appendChild(btn);
@@ -143,16 +144,15 @@
     chatWindow.scrollTop = chatWindow.scrollHeight;
   }
 
-  function extractHomeworkFence(text) {
-    const match = text.match(/```homework\s*([\s\S]*?)```/i);
-    if (!match) return [];
-    return match[1].split(/\r?\n/).map(l => l.trim()).filter(Boolean);
+  function buildWelcomeMessage() {
+    const state = M.loadState();
+    return window.TutorEngine.buildWelcomeMessage(state);
   }
 
   function renderAllMessages() {
     chatWindow.innerHTML = '';
     if (!chatHistory.length) {
-      chatHistory = [{ role: 'assistant', text: TutorEngine.buildWelcomeMessage(M.loadState()) }];
+      chatHistory = [{ role: 'assistant', text: buildWelcomeMessage() }];
       saveChatHistory(chatHistory);
     }
     chatHistory.forEach(renderMessage);
@@ -174,9 +174,9 @@
   function hideTyping() { const el = document.getElementById('typingIndicator'); if (el) el.remove(); }
 
   function setEngineBadge(mode) {
-    if (mode === 'claude') { engineBadge.textContent = '● Connected to Claude'; engineBadge.className = 'badge badge-ok'; }
-    else if (mode === 'checking') { engineBadge.textContent = 'Checking connection…'; engineBadge.className = 'badge badge-neutral'; }
-    else { engineBadge.textContent = '○ Offline Mentor Engine'; engineBadge.className = 'badge badge-warn'; }
+    if (mode === 'claude') { engineBadge.textContent = 'Connected to Claude'; engineBadge.className = 'badge badge-ok'; }
+    else if (mode === 'checking') { engineBadge.textContent = 'Checking connection'; engineBadge.className = 'badge badge-neutral'; }
+    else { engineBadge.textContent = 'Offline engine'; engineBadge.className = 'badge badge-warn'; }
   }
 
   async function callBackend(message, images) {
@@ -224,7 +224,7 @@
     const trimmed = text.trim();
     if (!trimmed && !pendingImages.length) return;
 
-    const userDisplayText = trimmed || `(sent ${pendingImages.length} image${pendingImages.length === 1 ? '' : 's'})`;
+    const userDisplayText = trimmed || `Sent ${pendingImages.length} image${pendingImages.length === 1 ? '' : 's'}.`;
     chatHistory.push({ role: 'user', text: userDisplayText });
     renderMessage({ role: 'user', text: userDisplayText });
     saveChatHistory(chatHistory);
@@ -242,7 +242,7 @@
     } catch (err) {
       backendAvailable = false;
       setEngineBadge('offline');
-      reply = TutorEngine.generateLocalReply(trimmed, M.loadState());
+      reply = window.TutorEngine.generateLocalReply(trimmed, M.loadState());
     }
     hideTyping();
     chatHistory.push({ role: 'assistant', text: reply });
@@ -258,7 +258,7 @@
     imagePreviewRow.innerHTML = pendingImages.map((img, i) => `
       <span class="thumb-wrap">
         <img src="data:${img.mediaType};base64,${img.data}" style="width:48px;height:48px;object-fit:cover;border-radius:8px;border:1px solid var(--line);" />
-        <span class="thumb-remove" data-remove-index="${i}">✕</span>
+        <span class="thumb-remove" data-remove-index="${i}">&times;</span>
       </span>
     `).join('');
   }
@@ -292,7 +292,7 @@
     'Quiz me on economics',
     'Explain the Krebs cycle like an expert tutor',
     'Set me homework on oligopoly',
-    "Run through a past paper question by question",
+    'Run through a past paper question by question',
   ];
   suggestionRow.innerHTML = SUGGESTIONS.map(s => `<button type="button" class="chip" data-suggestion="${M.escapeHtml(s)}">${M.escapeHtml(s)}</button>`).join('');
   suggestionRow.addEventListener('click', (e) => {

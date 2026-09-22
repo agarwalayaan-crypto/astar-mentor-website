@@ -2,7 +2,7 @@
   "name": "astar-mentor-website",
   "version": "1.0.0",
   "private": true,
-  "description": "The A* Mentor — a hosted Year 13 study dashboard with a real Claude AI Tutor integration.",
+  "description": "The A* Mentor. A hosted Year 13 study dashboard with a real Claude AI Tutor integration.",
   "main": "server.js",
   "scripts": {
     "start": "node server.js"

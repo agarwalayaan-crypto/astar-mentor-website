@@ -3,8 +3,8 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Analytics — The A* Mentor</title>
-<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🧠</text></svg>" />
+<title>Analytics. The A* Mentor</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><circle cx=%2250%22 cy=%2250%22 r=%2242%22 fill=%22%237a2436%22/></svg>" />
 <script>
   (function () { try { var t = localStorage.getItem('a_star_theme'); if (t === 'light' || t === 'dark') document.documentElement.setAttribute('data-theme', t); } catch (e) {} })();
 </script>
@@ -17,25 +17,30 @@
     <div class="main-inner">
 
       <div class="page-header">
-        <div class="page-eyebrow">📊 Deep Analytics</div>
-        <h1 class="page-title">Retention & Coverage</h1>
-        <p class="page-sub">Science-based analytics for your revision.</p>
+        <div class="page-eyebrow">Deep analytics</div>
+        <h1 class="page-title">Retention & coverage</h1>
+        <p class="page-sub">Where you actually stand across the complete specification, and how your last briefing ranked your subjects.</p>
       </div>
 
       <section class="grid grid-4" style="margin-bottom:24px;">
-        <div class="stat-tile"><div class="label">High-Priority</div><div class="value" id="statHighPriority">0</div></div>
-        <div class="stat-tile"><div class="label">Critical Decay</div><div class="value" id="statCriticalDecay">0</div></div>
-        <div class="stat-tile"><div class="label">Homework Cleared</div><div class="value" id="statHwPct">0%</div></div>
-        <div class="stat-tile"><div class="label">Overall Mastery</div><div class="value" id="statOverallMastery">0%</div></div>
+        <div class="stat-tile"><div class="label">High priority</div><div class="value" id="statHighPriority">0</div></div>
+        <div class="stat-tile"><div class="label">Critical decay</div><div class="value" id="statCriticalDecay">0</div></div>
+        <div class="stat-tile"><div class="label">Homework cleared</div><div class="value" id="statHwPct">0%</div></div>
+        <div class="stat-tile"><div class="label">Overall mastery</div><div class="value" id="statOverallMastery">0%</div></div>
       </section>
 
-      <p class="page-eyebrow" style="margin-bottom:10px;">Syllabus Coverage Map</p>
+      <div id="rankingSection" style="display:none;margin-bottom:28px;">
+        <p class="page-eyebrow" style="margin-bottom:10px;">Last briefing's priority ranking</p>
+        <section class="card card-pad fade-in" id="rankingBars" style="display:flex;flex-direction:column;gap:14px;"></section>
+      </div>
+
+      <p class="page-eyebrow" style="margin-bottom:10px;">Syllabus coverage map</p>
       <section class="grid grid-3" id="coverageContainer" style="margin-bottom:28px;"></section>
 
-      <p class="page-eyebrow" style="margin-bottom:10px;">Exam Board Confidence Matrix <span style="color:var(--ink3);font-weight:500;text-transform:none;">(drag to rate 1–10)</span></p>
+      <p class="page-eyebrow" style="margin-bottom:10px;">Exam board confidence matrix <span style="color:var(--ink3);font-weight:500;text-transform:none;">(drag to rate 1 to 10)</span></p>
       <section class="card card-pad fade-in" id="confidenceContainer" style="display:flex;flex-direction:column;gap:18px;"></section>
 
-      <footer class="site-foot">The A* Mentor — your study data stays in your browser's local storage.</footer>
+      <footer class="site-foot">The A* Mentor. Your study data stays in your browser's local storage.</footer>
     </div>
   </main>
 </div>
@@ -58,11 +63,25 @@
     document.getElementById('statOverallMastery').textContent = `${M.computeOverallMasteryPct(state)}%`;
   }
 
+  function renderRanking() {
+    if (!state.priorityRanking || !state.priorityRanking.length) return;
+    document.getElementById('rankingSection').style.display = 'block';
+    const maxScore = Math.max(...state.priorityRanking.map(r => r.score), 1);
+    document.getElementById('rankingBars').innerHTML = state.priorityRanking.map((r, i) => `
+      <div>
+        <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:5px;">
+          <span style="font-size:13px;font-weight:700;">#${i + 1} ${M.SUBJECT_LABELS[r.subject]}</span>
+          <span style="font-family:var(--font-mono);font-size:11px;color:var(--ink3);">score ${Math.round(r.score)}</span>
+        </div>
+        <div class="progress-track"><div class="progress-fill" style="width:${Math.round((r.score / maxScore) * 100)}%;"></div></div>
+      </div>
+    `).join('');
+  }
+
   function renderCoverageCard(subjectKey) {
     const subj = M.SYLLABUS[subjectKey];
-    let doneCount = 0, total = 0;
-    subj.topics.forEach(topic => topic.leaves.forEach(leaf => { total++; if (state.syllabus[subjectKey][topic.name][leaf].done) doneCount++; }));
-    const pct = total ? Math.round((doneCount / total) * 100) : 0;
+    const stats = M.computeSubjectStats(state, subjectKey);
+    const pct = stats.total ? Math.round((stats.done / stats.total) * 100) : 0;
     const radius = 40, circumference = 2 * Math.PI * radius, offset = circumference - (pct / 100) * circumference;
     return `
       <div class="card card-pad fade-in" style="display:flex;align-items:center;gap:16px;">
@@ -70,13 +89,14 @@
           <svg viewBox="0 0 100 100" width="96" height="96" style="transform:rotate(-90deg);">
             <circle cx="50" cy="50" r="${radius}" fill="none" stroke="var(--line)" stroke-width="10" />
             <circle cx="50" cy="50" r="${radius}" fill="none" stroke="var(${ACCENT_VAR[subj.accent]})" stroke-width="10" stroke-linecap="round"
-              stroke-dasharray="${circumference}" stroke-dashoffset="${offset}" style="transition:stroke-dashoffset .5s ease;" />
+              stroke-dasharray="${circumference}" stroke-dashoffset="${offset}" style="transition:stroke-dashoffset .6s ease;" />
           </svg>
-          <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:800;">${pct}%</div>
+          <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:700;font-family:var(--font-mono);">${pct}%</div>
         </div>
         <div style="min-width:0;">
-          <p style="font-size:13px;font-weight:800;color:var(${ACCENT_VAR[subj.accent]});margin:0 0 4px;">${subj.label}</p>
-          <p style="font-size:12.5px;color:var(--ink3);margin:0;">${doneCount} / ${total} topics mastered</p>
+          <p style="font-family:var(--font-display);font-size:14px;font-weight:600;color:var(${ACCENT_VAR[subj.accent]});margin:0 0 4px;">${subj.label}</p>
+          <p style="font-size:12px;color:var(--ink3);margin:0;">${stats.done} of ${stats.total} points mastered</p>
+          <p style="font-size:11px;color:var(--danger);margin:2px 0 0;">${stats.decay} in critical decay</p>
         </div>
       </div>
     `;
@@ -109,6 +129,7 @@
   document.getElementById('coverageContainer').innerHTML = Object.keys(M.SYLLABUS).map(renderCoverageCard).join('');
   renderConfidence();
   renderStats();
+  renderRanking();
 })();
 </script>
 </body>

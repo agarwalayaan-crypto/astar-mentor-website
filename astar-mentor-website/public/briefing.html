@@ -3,15 +3,10 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Weekly Briefing — The A* Mentor</title>
-<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🧠</text></svg>" />
+<title>Weekly Briefing. The A* Mentor</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><circle cx=%2250%22 cy=%2250%22 r=%2242%22 fill=%22%237a2436%22/></svg>" />
 <script>
-  (function () {
-    try {
-      var t = localStorage.getItem('a_star_theme');
-      if (t === 'light' || t === 'dark') document.documentElement.setAttribute('data-theme', t);
-    } catch (e) {}
-  })();
+  (function () { try { var t = localStorage.getItem('a_star_theme'); if (t === 'light' || t === 'dark') document.documentElement.setAttribute('data-theme', t); } catch (e) {} })();
 </script>
 <link rel="stylesheet" href="styles.css" />
 </head>
@@ -19,57 +14,64 @@
 <div class="app-shell">
   <div id="sidebarMount"></div>
   <main class="main-col">
-    <div class="main-inner" style="max-width:760px;">
+    <div class="main-inner" style="max-width:800px;">
 
       <div class="page-header">
-        <div class="page-eyebrow">Weekly Strategy Briefing</div>
-        <h1 class="page-title">🎯 Set up this week</h1>
-        <p class="page-sub">Submitting archives last week's homework and generates a fresh Mentor Strategy. Do this every Saturday, or whenever your focus changes.</p>
+        <div class="page-eyebrow">Weekly strategy briefing</div>
+        <h1 class="page-title">Set up this week</h1>
+        <p class="page-sub">Submitting archives last week's homework and computes a ranked priority plan from your anxiety, confidence and retention data. Do this every Saturday, or whenever your focus changes.</p>
       </div>
 
       <form id="briefingForm" class="card card-pad fade-in">
 
-        <div style="margin-bottom:22px;">
-          <label class="field-label">1. Which exact syllabus points are you learning this week?</label>
-          <div id="topicsContainer" style="max-height:280px;overflow-y:auto;border:1px solid var(--line);border-radius:var(--radius-sm);padding:12px;background:var(--panel2);"></div>
+        <div style="margin-bottom:24px;">
+          <label class="field-label">1. Which specification points are you covering this week?</label>
+          <input id="topicSearch" type="text" class="input" placeholder="Search the full specification, e.g. osmosis, moments, oligopoly" autocomplete="off" />
+          <div id="searchResults" style="margin-top:8px;"></div>
+
+          <div id="suggestionBlock" style="margin-top:14px;"></div>
+
+          <div id="selectedChips" style="display:flex;flex-wrap:wrap;gap:7px;margin-top:14px;"></div>
         </div>
 
-        <div style="margin-bottom:22px;">
-          <label class="field-label">2. Paste your raw homework text (Teams / Outlook / email)</label>
-          <textarea id="homeworkRawInput" class="textarea" rows="5" placeholder="Paste your homework list here — one assignment per line."></textarea>
+        <div style="margin-bottom:24px;">
+          <label class="field-label">2. Paste your raw homework text (Teams, Outlook, email)</label>
+          <textarea id="homeworkRawInput" class="textarea" rows="4" placeholder="One assignment per line."></textarea>
         </div>
 
-        <div style="margin-bottom:22px;">
-          <label class="field-label">3. Rate your baseline anxiety / readiness per subject (1 = calm, 10 = panicking)</label>
+        <div style="margin-bottom:6px;">
+          <label class="field-label">3. Rate your baseline anxiety per subject (1 calm, 10 panicking)</label>
           <div style="display:flex;flex-direction:column;gap:16px;margin-top:10px;">
             <div>
-              <div style="display:flex;justify-content:space-between;margin-bottom:6px;"><span style="font-size:12.5px;font-weight:700;color:var(--bio);">Biology</span><span id="anxietyBiologyValue" style="font-family:var(--font-mono);font-size:12px;color:var(--ink3);">5 / 10</span></div>
+              <div style="display:flex;justify-content:space-between;margin-bottom:6px;"><span style="font-size:12px;font-weight:700;color:var(--bio);">Biology</span><span id="anxietyBiologyValue" style="font-family:var(--font-mono);font-size:11.5px;color:var(--ink3);">5 / 10</span></div>
               <input id="anxietyBiology" type="range" min="1" max="10" value="5" style="color:var(--bio);" />
             </div>
             <div>
-              <div style="display:flex;justify-content:space-between;margin-bottom:6px;"><span style="font-size:12.5px;font-weight:700;color:var(--maths);">Maths</span><span id="anxietyMathsValue" style="font-family:var(--font-mono);font-size:12px;color:var(--ink3);">5 / 10</span></div>
+              <div style="display:flex;justify-content:space-between;margin-bottom:6px;"><span style="font-size:12px;font-weight:700;color:var(--maths);">Maths</span><span id="anxietyMathsValue" style="font-family:var(--font-mono);font-size:11.5px;color:var(--ink3);">5 / 10</span></div>
               <input id="anxietyMaths" type="range" min="1" max="10" value="5" style="color:var(--maths);" />
             </div>
             <div>
-              <div style="display:flex;justify-content:space-between;margin-bottom:6px;"><span style="font-size:12.5px;font-weight:700;color:var(--econ);">Economics</span><span id="anxietyEconomicsValue" style="font-family:var(--font-mono);font-size:12px;color:var(--ink3);">5 / 10</span></div>
+              <div style="display:flex;justify-content:space-between;margin-bottom:6px;"><span style="font-size:12px;font-weight:700;color:var(--econ);">Economics</span><span id="anxietyEconomicsValue" style="font-family:var(--font-mono);font-size:11.5px;color:var(--ink3);">5 / 10</span></div>
               <input id="anxietyEconomics" type="range" min="1" max="10" value="5" style="color:var(--econ);" />
             </div>
           </div>
         </div>
 
-        <div style="display:flex;gap:10px;">
-          <button type="submit" class="btn btn-primary" style="flex:1;">Generate My Mentor Strategy</button>
+        <div style="display:flex;gap:10px;margin-top:22px;">
+          <button type="submit" class="btn btn-primary" style="flex:1;">Generate my ranked strategy</button>
           <a href="index.html" class="btn btn-ghost">Cancel</a>
         </div>
       </form>
 
       <div id="resultCard" class="card card-pad fade-in" style="margin-top:20px;display:none;">
-        <p class="card-title">Your Mentor Strategy</p>
+        <p class="card-title">Priority ranking</p>
+        <div id="rankingBars" style="display:flex;flex-direction:column;gap:14px;margin-bottom:22px;"></div>
+        <p class="card-title">Your mentor strategy</p>
         <p class="prose-serif" id="resultText"></p>
-        <a href="index.html" class="btn btn-primary btn-sm" style="margin-top:14px;">Back to Dashboard →</a>
+        <a href="index.html" class="btn btn-primary btn-sm" style="margin-top:16px;">Back to dashboard</a>
       </div>
 
-      <footer class="site-foot">The A* Mentor — your study data stays in your browser's local storage.</footer>
+      <footer class="site-foot">The A* Mentor. Your study data stays in your browser's local storage.</footer>
     </div>
   </main>
 </div>
@@ -81,30 +83,84 @@
   'use strict';
   const M = window.MentorShared;
   let state = M.loadState();
+  let selected = []; // {subject, topic, leaf}
 
-  function renderTopics() {
-    const container = document.getElementById('topicsContainer');
-    container.innerHTML = Object.keys(M.SYLLABUS).map(subjectKey => {
-      const subj = M.SYLLABUS[subjectKey];
-      const topicsHtml = subj.topics.map(topic => {
-        const isFlat = topic.leaves.length === 1 && topic.leaves[0] === topic.name;
-        if (isFlat) {
-          return `
-            <label style="display:flex;align-items:center;gap:8px;padding:4px 0;cursor:pointer;">
-              <input type="checkbox" data-subject="${subjectKey}" data-topic="${M.escapeHtml(topic.name)}" data-leaf="${M.escapeHtml(topic.leaves[0])}" />
-              <span style="font-size:13px;">${M.escapeHtml(topic.name)}</span>
-            </label>`;
-        }
-        const leaves = topic.leaves.map(leaf => `
-          <label style="display:flex;align-items:center;gap:8px;padding:4px 0 4px 18px;cursor:pointer;">
-            <input type="checkbox" data-subject="${subjectKey}" data-topic="${M.escapeHtml(topic.name)}" data-leaf="${M.escapeHtml(leaf)}" />
-            <span style="font-size:13px;">${M.escapeHtml(leaf)}</span>
-          </label>`).join('');
-        return `<p style="font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:0.04em;color:var(--ink3);margin:10px 0 2px;">${M.escapeHtml(topic.name)}</p>${leaves}`;
-      }).join('');
-      return `<div style="margin-bottom:10px;"><p style="font-size:13px;font-weight:800;color:var(--${subj.accent});margin:0 0 2px;">${subj.label}</p>${topicsHtml}</div>`;
-    }).join('');
+  function leafKey(l) { return `${l.subject}::${l.topicName || l.topic}::${l.leafName || l.leaf}`; }
+  function isSelected(subject, topic, leaf) { return selected.some(s => s.subject === subject && s.topic === topic && s.leaf === leaf); }
+
+  function renderSelectedChips() {
+    const wrap = document.getElementById('selectedChips');
+    if (!selected.length) { wrap.innerHTML = '<p style="font-size:12px;color:var(--ink3);margin:0;">No topics added yet. Search above or pick a suggestion below.</p>'; return; }
+    wrap.innerHTML = selected.map((s, i) => `
+      <span class="chip">${M.SUBJECT_LABELS[s.subject]}: ${M.escapeHtml(s.leaf)} <span class="chip-remove" data-remove="${i}">&times;</span></span>
+    `).join('');
   }
+
+  function addTopic(subject, topic, leaf) {
+    if (isSelected(subject, topic, leaf)) return;
+    selected.push({ subject, topic, leaf });
+    renderSelectedChips();
+  }
+
+  document.getElementById('selectedChips').addEventListener('click', (e) => {
+    const btn = e.target.closest('[data-remove]');
+    if (!btn) return;
+    selected.splice(parseInt(btn.dataset.remove, 10), 1);
+    renderSelectedChips();
+  });
+
+  const searchInput = document.getElementById('topicSearch');
+  const searchResults = document.getElementById('searchResults');
+  searchInput.addEventListener('input', () => {
+    const q = searchInput.value.trim().toLowerCase();
+    if (q.length < 2) { searchResults.innerHTML = ''; return; }
+    const matches = M.ALL_LEAVES.filter(l =>
+      l.leafName.toLowerCase().includes(q) || l.topicName.toLowerCase().includes(q) || M.SUBJECT_LABELS[l.subject].toLowerCase().includes(q)
+    ).slice(0, 8);
+    if (!matches.length) { searchResults.innerHTML = '<p style="font-size:12px;color:var(--ink3);margin:6px 0 0;">No matches.</p>'; return; }
+    searchResults.innerHTML = matches.map(l => `
+      <button type="button" class="row" style="width:100%;text-align:left;cursor:pointer;border:1px solid var(--line);margin-bottom:6px;" data-subject="${l.subject}" data-topic="${M.escapeHtml(l.topicName)}" data-leaf="${M.escapeHtml(l.leafName)}">
+        <span style="flex:1;min-width:0;">
+          <span class="row-title">${M.escapeHtml(l.leafName)}</span>
+          <span class="row-meta" style="display:block;">${M.SUBJECT_LABELS[l.subject]} &middot; ${M.escapeHtml(l.topicName)} &middot; Year ${l.year}</span>
+        </span>
+        <span style="font-size:11px;font-weight:700;color:var(--burgundy-light);">+ Add</span>
+      </button>
+    `).join('');
+  });
+  searchResults.addEventListener('click', (e) => {
+    const btn = e.target.closest('[data-subject]');
+    if (!btn) return;
+    addTopic(btn.dataset.subject, btn.dataset.topic, btn.dataset.leaf);
+    searchInput.value = '';
+    searchResults.innerHTML = '';
+    searchInput.focus();
+  });
+
+  function renderSuggestions() {
+    const decay = M.computeCriticalDecayLeaves(state).slice(0, 6);
+    const never = M.computeNeverRevisedLeaves(state).slice(0, 6);
+    const block = document.getElementById('suggestionBlock');
+    let html = '';
+    if (decay.length) {
+      html += `<p style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;color:var(--danger);margin:0 0 6px;">Suggested: critical decay</p>
+        <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px;">
+          ${decay.map(l => `<button type="button" class="chip" data-subject="${l.subject}" data-topic="${M.escapeHtml(l.topicName)}" data-leaf="${M.escapeHtml(l.leafName)}">+ ${M.escapeHtml(l.leafName)}</button>`).join('')}
+        </div>`;
+    }
+    if (never.length) {
+      html += `<p style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;color:var(--ink3);margin:0 0 6px;">Suggested: never revised</p>
+        <div style="display:flex;flex-wrap:wrap;gap:6px;">
+          ${never.map(l => `<button type="button" class="chip" data-subject="${l.subject}" data-topic="${M.escapeHtml(l.topicName)}" data-leaf="${M.escapeHtml(l.leafName)}">+ ${M.escapeHtml(l.leafName)}</button>`).join('')}
+        </div>`;
+    }
+    block.innerHTML = html;
+  }
+  document.getElementById('suggestionBlock').addEventListener('click', (e) => {
+    const btn = e.target.closest('[data-subject]');
+    if (!btn) return;
+    addTopic(btn.dataset.subject, btn.dataset.topic, btn.dataset.leaf);
+  });
 
   function wireSlider(id, valueId) {
     const el = document.getElementById(id);
@@ -113,7 +169,6 @@
   wireSlider('anxietyBiology', 'anxietyBiologyValue');
   wireSlider('anxietyMaths', 'anxietyMathsValue');
   wireSlider('anxietyEconomics', 'anxietyEconomicsValue');
-
   document.getElementById('anxietyBiology').value = state.anxiety.biology;
   document.getElementById('anxietyMaths').value = state.anxiety.maths;
   document.getElementById('anxietyEconomics').value = state.anxiety.economics;
@@ -121,62 +176,81 @@
   document.getElementById('anxietyMathsValue').textContent = `${state.anxiety.maths} / 10`;
   document.getElementById('anxietyEconomicsValue').textContent = `${state.anxiety.economics} / 10`;
 
-  function buildMentorStrategy() {
+  function computeRanking(anxiety) {
     const subjects = Object.keys(M.SUBJECT_LABELS);
-    let riskiest = subjects[0];
-    subjects.forEach(s => { if (state.anxiety[s] > state.anxiety[riskiest]) riskiest = s; });
-    const riskLevel = state.anxiety[riskiest];
+    const rows = subjects.map(subject => {
+      const stats = M.computeSubjectStats(state, subject);
+      const decayPct = stats.total ? (stats.decay / stats.total) * 100 : 0;
+      const decayScore = Math.min(10, decayPct / 10);
+      const confidence = state.confidence[subject];
+      const score = anxiety[subject] * 4 + decayScore * 3 + (10 - confidence) * 2;
+      return { subject, score, anxiety: anxiety[subject], decayCount: stats.decay, confidence };
+    });
+    rows.sort((a, b) => b.score - a.score);
+    return rows;
+  }
 
-    const newTopicsForRiskiest = M.ALL_LEAVES
-      .filter(l => l.subject === riskiest && state.syllabus[l.subject][l.topicName][l.leafName].highPriority)
-      .map(l => l.leafName);
-
-    const criticalDecay = M.computeCriticalDecayLeaves(state).length;
-    const totalHighPriority = M.computeHighPriorityCount(state);
+  function buildMentorStrategy(ranking) {
+    const top = ranking[0];
+    const newTopicsForTop = selected.filter(s => s.subject === top.subject).map(s => s.leaf);
     const firstFreeBlock = M.TIMETABLE[0];
 
-    let text = `${M.SUBJECT_LABELS[riskiest]} is flagged HIGH RISK this week (anxiety ${riskLevel}/10)`;
-    text += newTopicsForRiskiest.length
-      ? ` due to ${newTopicsForRiskiest.length} newly targeted topic${newTopicsForRiskiest.length > 1 ? 's' : ''}: ${newTopicsForRiskiest.join(', ')}.`
-      : '.';
-    text += ` Your ${firstFreeBlock.day} ${firstFreeBlock.period} free period is now locked exclusively for ${M.SUBJECT_LABELS[riskiest]} homework clearance.`;
-    text += ` You've logged ${state.homework.length} homework task${state.homework.length === 1 ? '' : 's'} and ${totalHighPriority} topic${totalHighPriority === 1 ? '' : 's'} under active Spaced Repetition this week.`;
-    if (criticalDecay > 0) {
-      text += ` ⚠️ ${criticalDecay} topic${criticalDecay === 1 ? '' : 's'} ${criticalDecay === 1 ? 'has' : 'have'} entered Critical Decay (7+ days unrevised) — prioritise ${criticalDecay === 1 ? 'it' : 'them'} during your Weekend Sprint.`;
+    let text = `${M.SUBJECT_LABELS[top.subject]} ranks highest risk this week, scoring ${Math.round(top.score)} from anxiety ${top.anxiety} out of 10, ${top.decayCount} topic${top.decayCount === 1 ? '' : 's'} in critical decay, and confidence ${top.confidence} out of 10.`;
+    if (newTopicsForTop.length) {
+      text += ` Newly targeted this week: ${newTopicsForTop.join(', ')}.`;
     }
+    text += ` Your ${firstFreeBlock.day} ${firstFreeBlock.period} free period is now locked exclusively for ${M.SUBJECT_LABELS[top.subject]} homework clearance.`;
+    text += ` You've logged ${state.homework.length} homework task${state.homework.length === 1 ? '' : 's'} and ${selected.length} topic${selected.length === 1 ? '' : 's'} under active spaced repetition this week.`;
     return text;
   }
 
   document.getElementById('briefingForm').addEventListener('submit', (e) => {
     e.preventDefault();
-    const checked = Array.from(document.querySelectorAll('#topicsContainer input[type="checkbox"]:checked'));
-    const selectedLeaves = checked.map(cb => ({ subject: cb.dataset.subject, topic: cb.dataset.topic, leaf: cb.dataset.leaf }));
 
     M.ALL_LEAVES.forEach(l => { state.syllabus[l.subject][l.topicName][l.leafName].highPriority = false; });
-    selectedLeaves.forEach(sel => { state.syllabus[sel.subject][sel.topic][sel.leaf].highPriority = true; });
+    selected.forEach(sel => { state.syllabus[sel.subject][sel.topic][sel.leaf].highPriority = true; });
 
     const lines = document.getElementById('homeworkRawInput').value.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
     state.homework = lines.map(line => ({ id: M.uid(), text: line, done: false }));
 
-    state.anxiety = {
+    const anxiety = {
       biology: parseInt(document.getElementById('anxietyBiology').value, 10),
       maths: parseInt(document.getElementById('anxietyMaths').value, 10),
       economics: parseInt(document.getElementById('anxietyEconomics').value, 10),
     };
+    state.anxiety = anxiety;
     state.freePeriodUsage = { monday: false, tuesday: false, wednesday: false, thursday: false, friday: false };
     state.weekendSprint = { pastPaperDone: false, synthesisDone: false };
     state.weekStartDate = M.getWeekSaturday(new Date()).toISOString();
     state.onboarded = true;
-    state.mentorStrategyText = buildMentorStrategy();
 
+    const ranking = computeRanking(anxiety);
+    state.priorityRanking = ranking;
+    state.mentorStrategyText = buildMentorStrategy(ranking);
     M.saveState(state);
 
     document.getElementById('briefingForm').style.display = 'none';
-    document.getElementById('resultCard').style.display = 'block';
+    const resultCard = document.getElementById('resultCard');
+    resultCard.style.display = 'block';
     document.getElementById('resultText').textContent = state.mentorStrategyText;
+
+    const maxScore = Math.max(...ranking.map(r => r.score), 1);
+    document.getElementById('rankingBars').innerHTML = ranking.map((r, i) => `
+      <div class="grow-in" style="animation-delay:${i * 0.12}s;">
+        <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:5px;">
+          <span style="font-size:13px;font-weight:700;">#${i + 1} ${M.SUBJECT_LABELS[r.subject]}</span>
+          <span style="font-family:var(--font-mono);font-size:11px;color:var(--ink3);">score ${Math.round(r.score)}</span>
+        </div>
+        <div class="progress-track"><div class="progress-fill" style="width:${Math.round((r.score / maxScore) * 100)}%;"></div></div>
+        <p style="font-size:11px;color:var(--ink3);margin:5px 0 0;">Anxiety ${r.anxiety}/10, ${r.decayCount} in critical decay, confidence ${r.confidence}/10</p>
+      </div>
+    `).join('');
+
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   });
 
-  renderTopics();
+  renderSelectedChips();
+  renderSuggestions();
 })();
 </script>
 </body>

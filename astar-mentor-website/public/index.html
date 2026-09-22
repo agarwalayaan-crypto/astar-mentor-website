@@ -3,15 +3,10 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Dashboard — The A* Mentor</title>
-<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🧠</text></svg>" />
+<title>Dashboard. The A* Mentor</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><circle cx=%2250%22 cy=%2250%22 r=%2242%22 fill=%22%237a2436%22/></svg>" />
 <script>
-  (function () {
-    try {
-      var t = localStorage.getItem('a_star_theme');
-      if (t === 'light' || t === 'dark') document.documentElement.setAttribute('data-theme', t);
-    } catch (e) {}
-  })();
+  (function () { try { var t = localStorage.getItem('a_star_theme'); if (t === 'light' || t === 'dark') document.documentElement.setAttribute('data-theme', t); } catch (e) {} })();
 </script>
 <link rel="stylesheet" href="styles.css" />
 </head>
@@ -23,32 +18,34 @@
 
       <div class="page-header">
         <div class="page-eyebrow">Dashboard</div>
-        <h1 class="page-title" id="weekRangeLabel">Loading week…</h1>
-        <p class="page-sub">Your Year 13 study command centre — AQA Biology, OCR A Maths, Edexcel Economics.</p>
+        <h1 class="page-title" id="weekRangeLabel">Loading week</h1>
+        <p class="page-sub">Your Year 13 command centre for AQA Biology, OCR A Mathematics and Edexcel Economics, covering the complete two-year specification.</p>
       </div>
 
       <section class="card card-pad fade-in" style="margin-bottom:20px;" id="mentorBanner">
-        <div style="display:flex;gap:14px;align-items:flex-start;">
-          <div style="font-size:22px;">🎯</div>
+        <div style="display:flex;gap:16px;align-items:flex-start;">
+          <div style="width:38px;height:38px;border-radius:10px;background:var(--burgundy-soft);flex-shrink:0;display:flex;align-items:center;justify-content:center;">
+            <svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="var(--burgundy-light)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1.4" fill="var(--burgundy-light)" stroke="none"/></svg>
+          </div>
           <div style="min-width:0;flex:1;">
-            <p class="card-title">Mentor Strategy Briefing</p>
-            <p class="prose-serif" id="mentorStrategyText" style="margin:0;">Complete your Weekly Strategy Briefing to receive personalised mentor guidance.</p>
-            <a href="briefing.html" class="btn btn-primary btn-sm" style="margin-top:12px;">Start Weekly Briefing →</a>
+            <p class="card-title">Mentor strategy briefing</p>
+            <p class="prose-serif" id="mentorStrategyText" style="margin:0;">Complete your Weekly Strategy Briefing to receive a ranked, personalised study plan.</p>
+            <a href="briefing.html" class="btn btn-primary btn-sm" style="margin-top:14px;">Start weekly briefing</a>
           </div>
         </div>
       </section>
 
-      <section class="grid grid-4" style="margin-bottom:24px;">
-        <div class="stat-tile"><div class="label">High-Priority</div><div class="value" id="statHighPriority">0</div><div class="sub">topics this week</div></div>
-        <div class="stat-tile"><div class="label">Critical Decay</div><div class="value" id="statCriticalDecay">0</div><div class="sub">need urgent review</div></div>
-        <div class="stat-tile"><div class="label">Homework Cleared</div><div class="value" id="statHwPct">0%</div><div class="sub" id="statHwFraction">0 / 0 tasks</div></div>
-        <div class="stat-tile"><div class="label">Overall Mastery</div><div class="value" id="statOverallMastery">0%</div><div class="sub">of 26 syllabus topics</div></div>
+      <section class="grid grid-4 stagger" style="margin-bottom:24px;">
+        <div class="stat-tile"><div class="label">High priority</div><div class="value" id="statHighPriority">0</div><div class="sub">topics this week</div></div>
+        <div class="stat-tile"><div class="label">Critical decay</div><div class="value" id="statCriticalDecay">0</div><div class="sub">need urgent review</div></div>
+        <div class="stat-tile"><div class="label">Homework cleared</div><div class="value" id="statHwPct">0%</div><div class="sub" id="statHwFraction">0 of 0 tasks</div></div>
+        <div class="stat-tile"><div class="label">Overall mastery</div><div class="value" id="statOverallMastery">0%</div><div class="sub" id="statMasteryFraction">of the full spec</div></div>
       </section>
 
       <div class="page-eyebrow" style="margin-bottom:10px;">Jump to a section</div>
-      <section class="grid grid-3" id="navCards"></section>
+      <section class="grid grid-3 stagger" id="navCards"></section>
 
-      <footer class="site-foot">The A* Mentor — your study data stays in your browser's local storage.</footer>
+      <footer class="site-foot">The A* Mentor. Your study data stays in your browser's local storage.</footer>
     </div>
   </main>
 </div>
@@ -62,19 +59,16 @@
   const state = M.loadState();
 
   function renderHeader() {
-    if (!state.weekStartDate) {
-      document.getElementById('weekRangeLabel').textContent = 'No active week yet';
-      return;
-    }
+    if (!state.weekStartDate) { document.getElementById('weekRangeLabel').textContent = 'No active week yet'; return; }
     const start = new Date(state.weekStartDate);
     const end = new Date(start);
     end.setDate(start.getDate() + 6);
-    document.getElementById('weekRangeLabel').textContent = `Week of ${M.formatDateShort(start)} → ${M.formatDateShort(end)}`;
+    document.getElementById('weekRangeLabel').textContent = `Week of ${M.formatDateShort(start)} to ${M.formatDateShort(end)}`;
   }
 
   function renderBanner() {
     document.getElementById('mentorStrategyText').textContent =
-      state.mentorStrategyText || 'Complete your Weekly Strategy Briefing to receive personalised mentor guidance.';
+      state.mentorStrategyText || 'Complete your Weekly Strategy Briefing to receive a ranked, personalised study plan.';
   }
 
   function renderStats() {
@@ -83,24 +77,25 @@
     const hwTotal = state.homework.length;
     const hwDone = state.homework.filter(t => t.done).length;
     document.getElementById('statHwPct').textContent = `${hwTotal ? Math.round((hwDone / hwTotal) * 100) : 0}%`;
-    document.getElementById('statHwFraction').textContent = `${hwDone} / ${hwTotal} tasks`;
+    document.getElementById('statHwFraction').textContent = `${hwDone} of ${hwTotal} tasks`;
     document.getElementById('statOverallMastery').textContent = `${M.computeOverallMasteryPct(state)}%`;
+    document.getElementById('statMasteryFraction').textContent = `of ${M.TOTAL_LEAVES} spec points`;
   }
 
   const CARDS = [
-    { href: 'briefing.html', icon: '🎯', title: 'Weekly Briefing', desc: 'Set this week’s focus topics, paste homework, and rate your anxiety per subject.' },
-    { href: 'homework.html', icon: '☀️', title: 'Free Periods & Homework', desc: 'Your fixed school timetable, homework list, and file upload importer.' },
-    { href: 'afterschool.html', icon: '🌙', title: 'After School', desc: 'Fast Recall Blurting and the Year 12 Weak Spot Blitz.' },
-    { href: 'weekend.html', icon: '🔋', title: 'Weekend Sprint', desc: 'Full past paper practice and deep syllabus synthesis, weekends only.' },
-    { href: 'revision.html', icon: '📘', title: 'Syllabus Checklist', desc: 'All 26 topics with Ebbinghaus retention tracking and revise/master toggles.' },
-    { href: 'analytics.html', icon: '📊', title: 'Analytics', desc: 'Coverage rings, confidence matrix, and deep stats.' },
-    { href: 'pomodoro.html', icon: '⏱️', title: 'Pomodoro', desc: '25-minute focus timer with a synth beep on completion.' },
-    { href: 'tutor.html', icon: '🎓', title: 'AI Tutor', desc: 'Ask Claude to explain, quiz, mark homework, or run a past paper with you.' },
+    { href: 'briefing.html', icon: '<circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1.4" fill="currentColor" stroke="none"/>', title: 'Weekly briefing', desc: 'A smarter, ranked plan built from your anxiety, confidence and decay data.' },
+    { href: 'homework.html', icon: '<circle cx="12" cy="12" r="4.2"/><path d="M12 2.5v2.6M12 18.9v2.6M4.6 4.6l1.9 1.9M17.5 17.5l1.9 1.9M2.5 12h2.6M18.9 12h2.6M4.6 19.4l1.9-1.9M17.5 6.5l1.9-1.9"/>', title: 'Free periods & homework', desc: 'Your fixed school timetable, an organised homework list, and time-aware planning.' },
+    { href: 'afterschool.html', icon: '<path d="M20.5 13.4A8.8 8.8 0 1 1 10.6 3.5a7 7 0 0 0 9.9 9.9z"/>', title: 'After school', desc: 'Dedicated Blurting and Weak Spot Blitz timers, with technique guidance and history.' },
+    { href: 'weekend.html', icon: '<rect x="3" y="8" width="15" height="9" rx="2"/><path d="M20.5 11v3"/>', title: 'Weekend sprint', desc: 'Full past paper practice and deep synthesis, unlocked Saturday and Sunday.' },
+    { href: 'revision.html', icon: '<path d="M12 6.2C10.4 4.8 7.7 4 5 4a1 1 0 0 0-1 1v13a1 1 0 0 0 1 1c2.7 0 5.4.8 7 2.2"/><path d="M12 6.2C13.6 4.8 16.3 4 19 4a1 1 0 0 1 1 1v13a1 1 0 0 1-1 1c-2.7 0-5.4.8-7 2.2z"/>', title: 'Syllabus checklist', desc: `The complete ${M.TOTAL_LEAVES}-point two-year specification with retention tracking.` },
+    { href: 'flashcards.html', icon: '<rect x="4.5" y="6.5" width="12" height="15" rx="2" transform="rotate(-8 10.5 14)"/><rect x="7.5" y="3.5" width="13" height="16.5" rx="2"/>', title: 'Flashcards', desc: 'A spaced-repetition memory tool that schedules your next review for you.' },
+    { href: 'analytics.html', icon: '<path d="M3.5 3.5v16a1 1 0 0 0 1 1h16"/><rect x="7.5" y="13" width="3" height="5.5" rx="0.6"/><rect x="12.5" y="9" width="3" height="9.5" rx="0.6"/><rect x="17.5" y="6" width="3" height="12.5" rx="0.6"/>', title: 'Analytics', desc: 'Coverage by subject and year, plus your exam board confidence matrix.' },
+    { href: 'tutor.html', icon: '<path d="M2.5 9 12 4.5 21.5 9 12 13.5 2.5 9z"/><path d="M6.5 10.8v4.6c0 1.6 2.6 3.1 5.5 3.1s5.5-1.5 5.5-3.1v-4.6"/>', title: 'AI tutor', desc: 'Ask Claude to explain, quiz, mark homework, or run a past paper with you.' },
   ];
 
   document.getElementById('navCards').innerHTML = CARDS.map(c => `
     <a class="nav-card" href="${c.href}">
-      <span class="ico">${c.icon}</span>
+      <span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">${c.icon}</svg></span>
       <span class="title">${c.title}</span>
       <span class="desc">${c.desc}</span>
     </a>

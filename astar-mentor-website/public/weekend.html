@@ -3,8 +3,8 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Weekend Sprint — The A* Mentor</title>
-<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🧠</text></svg>" />
+<title>Weekend Sprint. The A* Mentor</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><circle cx=%2250%22 cy=%2250%22 r=%2242%22 fill=%22%237a2436%22/></svg>" />
 <script>
   (function () { try { var t = localStorage.getItem('a_star_theme'); if (t === 'light' || t === 'dark') document.documentElement.setAttribute('data-theme', t); } catch (e) {} })();
 </script>
@@ -14,20 +14,20 @@
 <div class="app-shell">
   <div id="sidebarMount"></div>
   <main class="main-col">
-    <div class="main-inner" style="max-width:760px;">
+    <div class="main-inner" style="max-width:780px;">
 
       <div class="page-header">
-        <div class="page-eyebrow">🔋 Weekend Sprint Zone</div>
-        <h1 class="page-title">Extended Deep-Work Sessions</h1>
+        <div class="page-eyebrow">Weekend sprint zone</div>
+        <h1 class="page-title">Extended deep work</h1>
         <p class="page-sub" id="weekendSubtitle">Only active on Saturdays and Sundays.</p>
       </div>
 
       <div id="weekendContent" class="grid grid-2"></div>
       <div id="weekendLockNotice" class="card card-pad fade-in" style="display:none;text-align:center;margin-top:10px;">
-        <p style="font-size:14px;font-weight:700;margin:0;">🔒 Unlocks automatically on Saturday &amp; Sunday</p>
+        <p style="font-size:13.5px;font-weight:700;margin:0;">Unlocks automatically on Saturday and Sunday.</p>
       </div>
 
-      <footer class="site-foot">The A* Mentor — your study data stays in your browser's local storage.</footer>
+      <footer class="site-foot">The A* Mentor. Your study data stays in your browser's local storage.</footer>
     </div>
   </main>
 </div>
@@ -42,7 +42,7 @@
 
   function render() {
     const weekend = M.isWeekend();
-    document.getElementById('weekendSubtitle').textContent = weekend ? 'Active now — make it count.' : 'Only active on Saturdays and Sundays.';
+    document.getElementById('weekendSubtitle').textContent = weekend ? 'Active now. Make it count.' : 'Only active on Saturdays and Sundays.';
     document.getElementById('weekendLockNotice').style.display = weekend ? 'none' : 'block';
     document.getElementById('weekendContent').style.display = weekend ? 'grid' : 'none';
 
@@ -50,15 +50,15 @@
       <label class="card card-pad fade-in" style="cursor:pointer;display:flex;gap:12px;align-items:flex-start;">
         <input type="checkbox" data-key="pastPaperDone" ${state.weekendSprint.pastPaperDone ? 'checked' : ''} />
         <span>
-          <span style="display:block;font-size:14px;font-weight:800;${state.weekendSprint.pastPaperDone ? 'color:var(--ok);text-decoration:line-through;' : ''}">Full Past Paper Practice</span>
-          <span style="display:block;font-size:12.5px;color:var(--ink3);margin-top:4px;">Complete a full timed past paper under exam conditions.</span>
+          <span style="display:block;font-family:var(--font-display);font-size:15px;font-weight:600;${state.weekendSprint.pastPaperDone ? 'color:var(--ok);text-decoration:line-through;' : ''}">Full past paper practice</span>
+          <span style="display:block;font-size:12px;color:var(--ink3);margin-top:5px;">Complete a full timed past paper under exam conditions.</span>
         </span>
       </label>
       <label class="card card-pad fade-in" style="cursor:pointer;display:flex;gap:12px;align-items:flex-start;">
         <input type="checkbox" data-key="synthesisDone" ${state.weekendSprint.synthesisDone ? 'checked' : ''} />
         <span>
-          <span style="display:block;font-size:14px;font-weight:800;${state.weekendSprint.synthesisDone ? 'color:var(--ok);text-decoration:line-through;' : ''}">Deep Syllabus Synthesis</span>
-          <span style="display:block;font-size:12.5px;color:var(--ink3);margin-top:4px;">Connect topics across units into one cohesive mental model.</span>
+          <span style="display:block;font-family:var(--font-display);font-size:15px;font-weight:600;${state.weekendSprint.synthesisDone ? 'color:var(--ok);text-decoration:line-through;' : ''}">Deep syllabus synthesis</span>
+          <span style="display:block;font-size:12px;color:var(--ink3);margin-top:5px;">Connect topics across units into one cohesive mental model.</span>
         </span>
       </label>
     `;

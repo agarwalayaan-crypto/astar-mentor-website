@@ -3,8 +3,8 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>After School — The A* Mentor</title>
-<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🧠</text></svg>" />
+<title>After School. The A* Mentor</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><circle cx=%2250%22 cy=%2250%22 r=%2242%22 fill=%22%237a2436%22/></svg>" />
 <script>
   (function () { try { var t = localStorage.getItem('a_star_theme'); if (t === 'light' || t === 'dark') document.documentElement.setAttribute('data-theme', t); } catch (e) {} })();
 </script>
@@ -14,35 +14,67 @@
 <div class="app-shell">
   <div id="sidebarMount"></div>
   <main class="main-col">
-    <div class="main-inner" style="max-width:760px;">
+    <div class="main-inner">
 
-      <div class="page-header">
-        <div class="page-eyebrow">🌙 After School Zone</div>
-        <h1 class="page-title">Fixed Daily Active-Recall Blocks</h1>
-        <p class="page-sub">Two short, high-yield sessions every evening.</p>
+      <div class="page-header" style="display:flex;justify-content:space-between;align-items:flex-end;flex-wrap:wrap;gap:10px;">
+        <div>
+          <div class="page-eyebrow">After school zone</div>
+          <h1 class="page-title">Active recall, timed</h1>
+          <p class="page-sub">Two evidence-based sessions, each with its own timer, that build the habit retrieval practice depends on.</p>
+        </div>
+        <div class="stat-tile" style="min-width:140px;">
+          <div class="label">Current streak</div>
+          <div class="value" id="streakValue">0</div>
+          <div class="sub">consecutive days</div>
+        </div>
       </div>
 
       <div class="grid grid-2">
+
         <section class="card card-pad fade-in">
-          <div style="display:flex;justify-content:space-between;align-items:baseline;">
-            <p class="card-title" style="margin:0;">15-Min Fast Recall Blurting</p>
-            <span class="row-meta">Sessions: <b id="blurtingCount">0</b></span>
+          <p class="card-title">15-minute fast recall blurting</p>
+          <p class="card-sub">Sessions completed: <b id="blurtingCount">0</b></p>
+          <div style="text-align:center;padding:14px 0 6px;">
+            <div id="blurtingDisplay" style="font-family:var(--font-mono);font-size:44px;font-weight:700;letter-spacing:-0.02em;">15:00</div>
+            <p id="blurtingStatus" style="font-size:11px;color:var(--ink3);text-transform:uppercase;letter-spacing:0.05em;font-weight:700;margin:4px 0 16px;">Ready</p>
+            <div class="grid grid-3" style="gap:8px;">
+              <button id="btnBlurtingStart" class="btn btn-primary btn-sm">Start</button>
+              <button id="btnBlurtingPause" class="btn btn-outline btn-sm">Pause</button>
+              <button id="btnBlurtingReset" class="btn btn-ghost btn-sm">Reset</button>
+            </div>
           </div>
-          <p class="card-sub">Free-write everything you remember, no notes.</p>
-          <button id="btnBlurting" class="btn btn-block"></button>
+          <details style="margin-top:14px;">
+            <summary style="cursor:pointer;font-size:11.5px;font-weight:700;color:var(--ink3);">Why blurting works</summary>
+            <p class="prose-serif" style="font-size:12.5px;margin-top:8px;">Close every book and set a timer. Write or say everything you remember about a topic without looking anything up, then check what you missed. This is retrieval practice: the act of pulling information out of memory strengthens it far more than re-reading ever does. The gaps you find are exactly where your revision should go next.</p>
+          </details>
+          <div id="blurtingHistory" style="margin-top:14px;"></div>
         </section>
 
         <section class="card card-pad fade-in">
-          <div style="display:flex;justify-content:space-between;align-items:baseline;">
-            <p class="card-title" style="margin:0;">45-Min Weak Spot Blitz</p>
-            <span class="row-meta">Sessions: <b id="weakSpotCount">0</b></span>
+          <p class="card-title">45-minute weak spot blitz</p>
+          <p class="card-sub">Sessions completed: <b id="weakSpotCount">0</b></p>
+
+          <label class="field-label" style="margin-top:4px;">Target topic (optional)</label>
+          <select id="weakSpotTopicSelect" class="select" style="margin-bottom:14px;"></select>
+
+          <div style="text-align:center;padding:2px 0 6px;">
+            <div id="weakSpotDisplay" style="font-family:var(--font-mono);font-size:44px;font-weight:700;letter-spacing:-0.02em;">45:00</div>
+            <p id="weakSpotStatus" style="font-size:11px;color:var(--ink3);text-transform:uppercase;letter-spacing:0.05em;font-weight:700;margin:4px 0 16px;">Ready</p>
+            <div class="grid grid-3" style="gap:8px;">
+              <button id="btnWeakSpotStart" class="btn btn-primary btn-sm">Start</button>
+              <button id="btnWeakSpotPause" class="btn btn-outline btn-sm">Pause</button>
+              <button id="btnWeakSpotReset" class="btn btn-ghost btn-sm">Reset</button>
+            </div>
           </div>
-          <p class="card-sub">Completing this refreshes decay timers on all High-Priority topics.</p>
-          <button id="btnWeakSpot" class="btn btn-block"></button>
+          <details style="margin-top:14px;">
+            <summary style="cursor:pointer;font-size:11.5px;font-weight:700;color:var(--ink3);">How to run a focused blitz</summary>
+            <p class="prose-serif" style="font-size:12.5px;margin-top:8px;">Pick one topic in critical decay or one you have never revised, ideally the one you would least like to be asked about in an exam. Spend the first ten minutes rebuilding it from scratch: diagrams, definitions, worked examples. Spend the rest attempting exam-style questions on it. Finishing the timer automatically marks your high-priority topics as freshly revised, so your retention badges reset.</p>
+          </details>
+          <div id="weakSpotHistory" style="margin-top:14px;"></div>
         </section>
       </div>
 
-      <footer class="site-foot">The A* Mentor — your study data stays in your browser's local storage.</footer>
+      <footer class="site-foot">The A* Mentor. Your study data stays in your browser's local storage.</footer>
     </div>
   </main>
 </div>
@@ -55,41 +87,163 @@
   const M = window.MentorShared;
   let state = M.loadState();
 
-  function render() {
-    const blurtingDoneToday = state.afterSchool.blurtingLastDone === M.todayDateString();
-    const btnBlurting = document.getElementById('btnBlurting');
-    btnBlurting.textContent = blurtingDoneToday ? '✓ Completed Today' : 'Mark Complete';
-    btnBlurting.className = 'btn btn-block ' + (blurtingDoneToday ? 'btn-ghost' : 'btn-primary');
-    document.getElementById('blurtingCount').textContent = String(state.afterSchool.blurtingCount);
+  function playBeepSequence() {
+    try {
+      const AudioCtx = window.AudioContext || window.webkitAudioContext;
+      const ctx = new AudioCtx();
+      [660, 880, 1046.5].forEach((freq, i) => {
+        const start = ctx.currentTime + i * 0.22;
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = 'sine';
+        osc.frequency.value = freq;
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        gain.gain.setValueAtTime(0.0001, start);
+        gain.gain.exponentialRampToValueAtTime(0.28, start + 0.02);
+        gain.gain.exponentialRampToValueAtTime(0.0001, start + 0.2);
+        osc.start(start);
+        osc.stop(start + 0.22);
+      });
+    } catch (err) { console.error('Web Audio playback failed.', err); }
+  }
+  function notifyDone(title, body) {
+    if ('Notification' in window) {
+      if (Notification.permission === 'granted') { new Notification(title, { body }); return; }
+      if (Notification.permission !== 'denied') {
+        Notification.requestPermission().then((perm) => { if (perm === 'granted') new Notification(title, { body }); else alert(title + '. ' + body); });
+        return;
+      }
+    }
+    alert(title + '. ' + body);
+  }
+  if ('Notification' in window && Notification.permission === 'default') Notification.requestPermission().catch(() => {});
 
-    const weakSpotDoneToday = state.afterSchool.weakSpotLastDone === M.todayDateString();
-    const btnWeakSpot = document.getElementById('btnWeakSpot');
-    btnWeakSpot.textContent = weakSpotDoneToday ? '✓ Completed Today' : 'Mark Complete & Refresh Decay Timers';
-    btnWeakSpot.className = 'btn btn-block ' + (weakSpotDoneToday ? 'btn-ghost' : 'btn-primary');
-    document.getElementById('weakSpotCount').textContent = String(state.afterSchool.weakSpotCount);
+  function formatClock(total) {
+    const m = String(Math.floor(total / 60)).padStart(2, '0');
+    const s = String(total % 60).padStart(2, '0');
+    return `${m}:${s}`;
   }
 
-  document.getElementById('btnBlurting').addEventListener('click', () => {
-    if (state.afterSchool.blurtingLastDone === M.todayDateString()) return;
-    state.afterSchool.blurtingLastDone = M.todayDateString();
-    state.afterSchool.blurtingCount += 1;
-    M.saveState(state);
-    render();
-  });
+  function makeTimer(opts) {
+    let seconds = opts.totalSeconds;
+    let interval = null;
+    let running = false;
+    const display = document.getElementById(opts.displayId);
+    const status = document.getElementById(opts.statusId);
+    function update() { display.textContent = formatClock(seconds); }
+    function start() {
+      if (running) return;
+      running = true;
+      status.textContent = 'In progress';
+      interval = setInterval(() => {
+        seconds -= 1;
+        update();
+        if (seconds <= 0) complete();
+      }, 1000);
+    }
+    function pause() { if (!running) return; running = false; clearInterval(interval); status.textContent = 'Paused'; }
+    function reset() { running = false; clearInterval(interval); seconds = opts.totalSeconds; status.textContent = 'Ready'; update(); }
+    function complete() {
+      clearInterval(interval);
+      running = false;
+      status.textContent = 'Session complete';
+      playBeepSequence();
+      notifyDone(opts.notifyTitle, opts.notifyBody);
+      opts.onComplete();
+      seconds = opts.totalSeconds;
+      update();
+      setTimeout(() => { status.textContent = 'Ready'; }, 3000);
+    }
+    update();
+    return { start, pause, reset };
+  }
 
-  document.getElementById('btnWeakSpot').addEventListener('click', () => {
-    if (state.afterSchool.weakSpotLastDone === M.todayDateString()) return;
-    state.afterSchool.weakSpotLastDone = M.todayDateString();
-    state.afterSchool.weakSpotCount += 1;
-    M.ALL_LEAVES.forEach(l => {
-      const leafState = state.syllabus[l.subject][l.topicName][l.leafName];
-      if (leafState.highPriority) leafState.lastRevised = Date.now();
+  function renderStreak() {
+    const dates = new Set();
+    state.afterSchool.blurtingHistory.forEach(h => dates.add(h.date));
+    state.afterSchool.weakSpotHistory.forEach(h => dates.add(h.date));
+    let streak = 0;
+    let cursor = new Date();
+    while (dates.has(cursor.toDateString())) { streak++; cursor.setDate(cursor.getDate() - 1); }
+    document.getElementById('streakValue').textContent = String(streak);
+  }
+
+  function renderHistoryList(elId, history) {
+    const el = document.getElementById(elId);
+    if (!history.length) { el.innerHTML = '<p style="font-size:11px;color:var(--ink3);margin:0;">No sessions logged yet.</p>'; return; }
+    const recent = history.slice(-5).reverse();
+    el.innerHTML = `<p style="font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;color:var(--ink3);margin:0 0 6px;">Recent sessions</p>` +
+      recent.map(h => `<div class="row" style="padding:7px 10px;"><span class="row-title" style="font-size:12px;flex:1;">${M.escapeHtml(h.date)}</span>${h.topic ? `<span class="row-meta">${M.escapeHtml(h.topic)}</span>` : ''}</div>`).join('');
+  }
+
+  function renderAll() {
+    document.getElementById('blurtingCount').textContent = String(state.afterSchool.blurtingCount);
+    document.getElementById('weakSpotCount').textContent = String(state.afterSchool.weakSpotCount);
+    renderHistoryList('blurtingHistory', state.afterSchool.blurtingHistory);
+    renderHistoryList('weakSpotHistory', state.afterSchool.weakSpotHistory);
+    renderStreak();
+  }
+
+  function populateTopicSelect() {
+    const select = document.getElementById('weakSpotTopicSelect');
+    const priority = M.ALL_LEAVES.filter(l => state.syllabus[l.subject][l.topicName][l.leafName].highPriority);
+    const decay = M.computeCriticalDecayLeaves(state);
+    const combined = [];
+    const seen = new Set();
+    priority.concat(decay).forEach(l => {
+      const key = `${l.subject}::${l.topicName}::${l.leafName}`;
+      if (!seen.has(key)) { seen.add(key); combined.push(l); }
     });
-    M.saveState(state);
-    render();
+    select.innerHTML = '<option value="">All high-priority topics</option>' +
+      combined.map(l => `<option value="${l.subject}::${M.escapeHtml(l.topicName)}::${M.escapeHtml(l.leafName)}">${M.SUBJECT_LABELS[l.subject]}: ${M.escapeHtml(l.leafName)}</option>`).join('');
+  }
+
+  const blurtingTimer = makeTimer({
+    totalSeconds: 15 * 60, displayId: 'blurtingDisplay', statusId: 'blurtingStatus',
+    notifyTitle: 'Blurting session complete', notifyBody: 'Nice work. Check what you missed and log it as a gap to close.',
+    onComplete: () => {
+      state.afterSchool.blurtingLastDone = M.todayDateString();
+      state.afterSchool.blurtingCount += 1;
+      state.afterSchool.blurtingHistory.push({ date: M.todayDateString() });
+      M.saveState(state);
+      renderAll();
+    },
+  });
+  const weakSpotTimer = makeTimer({
+    totalSeconds: 45 * 60, displayId: 'weakSpotDisplay', statusId: 'weakSpotStatus',
+    notifyTitle: 'Weak spot blitz complete', notifyBody: 'Your targeted topics have been marked as freshly revised.',
+    onComplete: () => {
+      const picked = document.getElementById('weakSpotTopicSelect').value;
+      let topicLabel = 'All high-priority topics';
+      if (picked) {
+        const [subject, topic, leaf] = picked.split('::');
+        state.syllabus[subject][topic][leaf].lastRevised = Date.now();
+        topicLabel = leaf;
+      } else {
+        M.ALL_LEAVES.forEach(l => {
+          const leafState = state.syllabus[l.subject][l.topicName][l.leafName];
+          if (leafState.highPriority) leafState.lastRevised = Date.now();
+        });
+      }
+      state.afterSchool.weakSpotLastDone = M.todayDateString();
+      state.afterSchool.weakSpotCount += 1;
+      state.afterSchool.weakSpotHistory.push({ date: M.todayDateString(), topic: topicLabel });
+      M.saveState(state);
+      renderAll();
+      populateTopicSelect();
+    },
   });
 
-  render();
+  document.getElementById('btnBlurtingStart').addEventListener('click', () => blurtingTimer.start());
+  document.getElementById('btnBlurtingPause').addEventListener('click', () => blurtingTimer.pause());
+  document.getElementById('btnBlurtingReset').addEventListener('click', () => blurtingTimer.reset());
+  document.getElementById('btnWeakSpotStart').addEventListener('click', () => weakSpotTimer.start());
+  document.getElementById('btnWeakSpotPause').addEventListener('click', () => weakSpotTimer.pause());
+  document.getElementById('btnWeakSpotReset').addEventListener('click', () => weakSpotTimer.reset());
+
+  populateTopicSelect();
+  renderAll();
 })();
 </script>
 </body>

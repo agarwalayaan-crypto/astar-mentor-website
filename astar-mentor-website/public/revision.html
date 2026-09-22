@@ -3,8 +3,8 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Syllabus Checklist — The A* Mentor</title>
-<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🧠</text></svg>" />
+<title>Syllabus Checklist. The A* Mentor</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><circle cx=%2250%22 cy=%2250%22 r=%2242%22 fill=%22%237a2436%22/></svg>" />
 <script>
   (function () { try { var t = localStorage.getItem('a_star_theme'); if (t === 'light' || t === 'dark') document.documentElement.setAttribute('data-theme', t); } catch (e) {} })();
 </script>
@@ -17,14 +17,24 @@
     <div class="main-inner">
 
       <div class="page-header">
-        <div class="page-eyebrow">📘 The A* Engine</div>
-        <h1 class="page-title">Official Syllabus Checklist</h1>
-        <p class="page-sub">All 26 topics across AQA Biology, OCR A Maths and Edexcel Economics — with Ebbinghaus retention tracking.</p>
+        <div class="page-eyebrow">The A* engine</div>
+        <h1 class="page-title" id="pageTitleCount">Complete specification checklist</h1>
+        <p class="page-sub">The full two-year AQA Biology, OCR A Mathematics and Edexcel Economics specifications, with Ebbinghaus retention tracking on every point.</p>
       </div>
 
-      <div class="grid grid-3" id="syllabusContainer"></div>
+      <div class="tabbar" id="subjectTabs"></div>
 
-      <footer class="site-foot">The A* Mentor — your study data stays in your browser's local storage.</footer>
+      <div class="card card-pad fade-in" style="margin-bottom:18px;">
+        <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;">
+          <input id="searchInput" type="text" class="input" placeholder="Search this subject" style="flex:1;min-width:180px;" />
+          <div style="display:flex;gap:5px;" id="yearFilters"></div>
+          <div style="display:flex;gap:5px;" id="statusFilters"></div>
+        </div>
+      </div>
+
+      <section class="card card-pad fade-in" id="listContainer"></section>
+
+      <footer class="site-foot">The A* Mentor. Your study data stays in your browser's local storage.</footer>
     </div>
   </main>
 </div>
@@ -36,66 +46,112 @@
   'use strict';
   const M = window.MentorShared;
   let state = M.loadState();
+  let activeSubject = 'biology';
+  let activeYear = 'all';
+  let activeStatus = 'all';
+  let query = '';
 
-  function renderLeafRow(subject, topicName, leafName, indent) {
+  document.getElementById('pageTitleCount').textContent = `Complete specification checklist. ${M.TOTAL_LEAVES} points`;
+
+  function renderTabs() {
+    document.getElementById('subjectTabs').innerHTML = Object.keys(M.SYLLABUS).map(subject => `
+      <button type="button" class="tab-btn${subject === activeSubject ? ' active' : ''}" data-subject="${subject}">${M.SYLLABUS[subject].label}</button>
+    `).join('');
+  }
+  document.getElementById('subjectTabs').addEventListener('click', (e) => {
+    const btn = e.target.closest('[data-subject]');
+    if (!btn) return;
+    activeSubject = btn.dataset.subject;
+    renderTabs();
+    renderList();
+  });
+
+  function renderFilterChips(containerId, options, activeVal, onPick) {
+    document.getElementById(containerId).innerHTML = options.map(o => `
+      <button type="button" class="chip" data-val="${o.value}" style="${o.value === activeVal ? 'border-color:var(--burgundy-light);color:var(--burgundy-light);' : ''}">${o.label}</button>
+    `).join('');
+    document.getElementById(containerId).onclick = (e) => {
+      const btn = e.target.closest('[data-val]');
+      if (!btn) return;
+      onPick(btn.dataset.val);
+    };
+  }
+
+  function renderFilters() {
+    renderFilterChips('yearFilters', [{ value: 'all', label: 'All years' }, { value: '12', label: 'Year 12' }, { value: '13', label: 'Year 13' }], activeYear, (v) => { activeYear = v; renderFilters(); renderList(); });
+    renderFilterChips('statusFilters', [{ value: 'all', label: 'All' }, { value: 'pending', label: 'Not revised' }, { value: 'revised', label: 'Revised' }, { value: 'flagged', label: 'Flagged' }], activeStatus, (v) => { activeStatus = v; renderFilters(); renderList(); });
+  }
+
+  document.getElementById('searchInput').addEventListener('input', (e) => { query = e.target.value.trim().toLowerCase(); renderList(); });
+
+  function leafMatchesFilters(subjectKey, topicName, leafName) {
+    const ls = state.syllabus[subjectKey][topicName][leafName];
+    if (query && !leafName.toLowerCase().includes(query) && !topicName.toLowerCase().includes(query)) return false;
+    if (activeStatus === 'pending' && ls.done) return false;
+    if (activeStatus === 'revised' && !ls.done) return false;
+    if (activeStatus === 'flagged' && !ls.highPriority) return false;
+    return true;
+  }
+
+  function renderLeafRow(subject, topicName, leafName) {
     const leafState = state.syllabus[subject][topicName][leafName];
     const badge = M.getRetentionBadge(leafState.lastRevised);
     return `
-      <div class="row" style="${indent ? 'margin-left:16px;' : ''}">
+      <div class="row" style="margin-left:16px;">
         <label style="display:flex;align-items:center;gap:8px;flex:1;min-width:0;cursor:pointer;">
           <input type="checkbox" data-action="toggle-leaf" data-subject="${subject}" data-topic="${M.escapeHtml(topicName)}" data-leaf="${M.escapeHtml(leafName)}" ${leafState.done ? 'checked' : ''} />
           <span class="truncate" style="font-size:12.5px;${leafState.done ? 'text-decoration:line-through;color:var(--ink3);' : ''}">${M.escapeHtml(leafName)}</span>
-          ${leafState.highPriority ? '<span title="High-Priority this week" style="color:var(--warn);">★</span>' : ''}
+          ${leafState.highPriority ? '<span title="High priority this week" style="color:var(--warn);">&starf;</span>' : ''}
         </label>
         <span class="badge ${badge.cls}" title="Last revised: ${M.daysAgoLabel(leafState.lastRevised)}">${badge.label}</span>
-        <button type="button" data-action="revise-leaf" data-subject="${subject}" data-topic="${M.escapeHtml(topicName)}" data-leaf="${M.escapeHtml(leafName)}" title="Mark as revised now" class="btn btn-sm btn-ghost">🔄</button>
+        <button type="button" data-action="revise-leaf" data-subject="${subject}" data-topic="${M.escapeHtml(topicName)}" data-leaf="${M.escapeHtml(leafName)}" title="Mark as revised now" class="btn btn-sm btn-ghost">Revise</button>
       </div>
     `;
   }
 
-  function renderSubjectCard(subjectKey) {
-    const subj = M.SYLLABUS[subjectKey];
+  function renderList() {
+    const subj = M.SYLLABUS[activeSubject];
     let doneCount = 0, total = 0;
-    const rows = subj.topics.map(topic => {
-      const isFlat = topic.leaves.length === 1 && topic.leaves[0] === topic.name;
-      topic.leaves.forEach(leaf => { total++; if (state.syllabus[subjectKey][topic.name][leaf].done) doneCount++; });
-      if (isFlat) return renderLeafRow(subjectKey, topic.name, topic.leaves[0], false);
-      const leafRows = topic.leaves.map(leaf => renderLeafRow(subjectKey, topic.name, leaf, true)).join('');
-      return `<p style="font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:0.04em;color:var(--ink3);margin:12px 0 6px;">${M.escapeHtml(topic.name)}</p>${leafRows}`;
-    }).join('');
-
-    return `
-      <section class="card card-pad fade-in">
-        <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px;">
-          <p class="card-title" style="margin:0;color:var(--${subj.accent});">${subj.label}</p>
-          <span class="row-meta" style="font-family:var(--font-mono);">${doneCount}/${total}</span>
-        </div>
-        ${rows}
-      </section>
+    let html = '';
+    subj.topics.forEach(topic => {
+      if (activeYear !== 'all' && String(topic.year) !== activeYear) return;
+      const visibleLeaves = topic.leaves.filter(leaf => leafMatchesFilters(activeSubject, topic.name, leaf));
+      topic.leaves.forEach(leaf => { total++; if (state.syllabus[activeSubject][topic.name][leaf].done) doneCount++; });
+      if (!visibleLeaves.length) return;
+      html += `<p style="font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;color:var(--ink3);margin:14px 0 6px;">${M.escapeHtml(topic.name)} <span style="color:var(--ink3);opacity:0.7;">&middot; Year ${topic.year}</span></p>`;
+      html += visibleLeaves.map(leaf => renderLeafRow(activeSubject, topic.name, leaf)).join('');
+    });
+    if (!html) html = '<p style="font-size:13px;color:var(--ink3);text-align:center;padding:24px 0;">No topics match these filters.</p>';
+    document.getElementById('listContainer').innerHTML = `
+      <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:4px;">
+        <p class="card-title" style="margin:0;color:var(--${subj.accent});">${subj.label}</p>
+        <span class="row-meta" style="font-family:var(--font-mono);">${doneCount}/${total} mastered</span>
+      </div>
+      ${html}
     `;
   }
 
-  function renderAll() {
-    document.getElementById('syllabusContainer').innerHTML = Object.keys(M.SYLLABUS).map(renderSubjectCard).join('');
-  }
-
-  document.getElementById('syllabusContainer').addEventListener('click', (e) => {
+  document.getElementById('listContainer').addEventListener('click', (e) => {
     const revise = e.target.closest('[data-action="revise-leaf"]');
     if (revise) {
-      state.syllabus[revise.dataset.subject][revise.dataset.topic][revise.dataset.leaf].lastRevised = Date.now();
+      const ls = state.syllabus[revise.dataset.subject][revise.dataset.topic][revise.dataset.leaf];
+      ls.lastRevised = Date.now();
+      M.scheduleReview(ls, 'good');
       M.saveState(state);
-      renderAll();
+      renderList();
       return;
     }
     const cb = e.target.closest('input[data-action="toggle-leaf"]');
     if (cb) {
       state.syllabus[cb.dataset.subject][cb.dataset.topic][cb.dataset.leaf].done = cb.checked;
       M.saveState(state);
-      renderAll();
+      renderList();
     }
   });
 
-  renderAll();
+  renderTabs();
+  renderFilters();
+  renderList();
 })();
 </script>
 </body>

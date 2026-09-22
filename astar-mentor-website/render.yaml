@@ -1,9 +1,9 @@
 # Optional "Blueprint" file. If you connect this repo to Render via
 # https://dashboard.render.com/blueprints, Render reads this file and
-# pre-fills the service settings for you — you'll still need to paste in
+# pre-fills the service settings for you. You will still need to paste in
 # your ANTHROPIC_API_KEY value by hand (secrets are never stored in git).
-# If you'd rather click through the normal "New Web Service" flow instead,
-# you can ignore this file entirely — see README.md.
+# If you would rather click through the normal "New Web Service" flow instead,
+# you can ignore this file entirely. See README.md.
 
 services:
   - type: web

@@ -3,8 +3,8 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Free Periods & Homework — The A* Mentor</title>
-<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🧠</text></svg>" />
+<title>Free Periods & Homework. The A* Mentor</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><circle cx=%2250%22 cy=%2250%22 r=%2242%22 fill=%22%237a2436%22/></svg>" />
 <script>
   (function () { try { var t = localStorage.getItem('a_star_theme'); if (t === 'light' || t === 'dark') document.documentElement.setAttribute('data-theme', t); } catch (e) {} })();
 </script>
@@ -17,47 +17,66 @@
     <div class="main-inner">
 
       <div class="page-header">
-        <div class="page-eyebrow">☀️ School Free Periods Zone</div>
-        <h1 class="page-title">Free Periods & Homework</h1>
-        <p class="page-sub">Your fixed weekly timetable is locked for school homework and deadlines only.</p>
+        <div class="page-eyebrow">School free periods zone</div>
+        <h1 class="page-title">Free periods & homework</h1>
+        <p class="page-sub">Your fixed weekly timetable is locked for school homework and deadlines only, organised so you always know what to do next and whether you have the time for it.</p>
       </div>
 
       <div class="grid grid-2">
-        <section class="card card-pad fade-in">
-          <p class="card-title">Fixed Weekly Timetable</p>
-          <p class="card-sub">Tick a slot off once you've used it productively.</p>
-          <div id="timetableList"></div>
-          <div style="margin-top:14px;background:var(--panel);border:1px solid var(--line);border-radius:var(--radius-sm);padding:12px;">
-            <div style="display:flex;justify-content:space-between;font-size:12px;color:var(--ink2);margin-bottom:6px;">
-              <span>Productive time used</span><span id="freeTimeFraction" style="font-family:var(--font-mono);">0 / 400 min</span>
+        <div style="display:flex;flex-direction:column;gap:18px;">
+          <section class="card card-pad fade-in">
+            <p class="card-title">Fixed weekly timetable</p>
+            <p class="card-sub">Tick a slot off once you have used it productively.</p>
+            <div id="timetableList"></div>
+            <div style="margin-top:14px;background:var(--panel2);border:1px solid var(--line);border-radius:var(--radius-sm);padding:12px;">
+              <div style="display:flex;justify-content:space-between;font-size:11.5px;color:var(--ink2);margin-bottom:6px;">
+                <span>Productive time used</span><span id="freeTimeFraction" style="font-family:var(--font-mono);">0 / 400 min</span>
+              </div>
+              <div class="progress-track"><div class="progress-fill" id="freeTimeBar" style="width:0%;"></div></div>
             </div>
-            <div class="progress-track"><div class="progress-fill" id="freeTimeBar" style="width:0%;"></div></div>
-          </div>
-        </section>
+          </section>
+
+          <section class="card card-pad fade-in">
+            <p class="card-title">Time budget</p>
+            <p class="card-sub">Comparing your pending workload against the free-period time you have left this week.</p>
+            <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px;">
+              <span style="font-size:12px;color:var(--ink2);">Estimated pending work</span>
+              <span id="estTotalMinutes" style="font-family:var(--font-mono);font-size:13px;font-weight:700;">0 min</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:10px;">
+              <span style="font-size:12px;color:var(--ink2);">Free-period time remaining</span>
+              <span id="remainingMinutes" style="font-family:var(--font-mono);font-size:13px;font-weight:700;">400 min</span>
+            </div>
+            <p id="timeVerdict" class="prose-serif" style="margin:0;font-size:13px;"></p>
+          </section>
+        </div>
 
         <section class="card card-pad fade-in">
           <div style="display:flex;justify-content:space-between;align-items:center;">
-            <p class="card-title" style="margin:0;">Homework & Deadlines</p>
+            <p class="card-title" style="margin:0;">Homework & deadlines</p>
             <span class="badge badge-neutral" id="homeworkCountBadge">0</span>
           </div>
-          <p class="card-sub">Cleared aggressively during free periods.</p>
+          <p class="card-sub">Sorted by priority. Cleared aggressively during free periods.</p>
 
-          <button id="btnFastTrack" class="btn btn-primary btn-block" style="margin-bottom:10px;">⚡ Fast-Track Next Assignment</button>
+          <button id="btnFastTrack" class="btn btn-primary btn-block" style="margin-bottom:12px;">Fast-track next assignment</button>
 
-          <button id="btnUploadHomework" type="button" class="btn btn-outline btn-block" style="margin-bottom:6px;">📎 Upload Homework File (.txt / .csv)</button>
-          <input id="homeworkFileInput" type="file" accept=".txt,.csv,.tsv,.md" class="hidden" style="display:none;" />
-          <p style="font-size:10.5px;color:var(--ink3);margin:0 0 14px;">Export your Teams/Outlook assignment list to a text or CSV file, then upload it here.</p>
-
-          <div style="display:flex;gap:8px;margin-bottom:12px;">
-            <input id="homeworkInput" type="text" class="input" placeholder="Add a homework task…" />
-            <button id="btnAddHomework" class="btn btn-ghost">Add</button>
+          <div style="display:flex;gap:8px;margin-bottom:8px;">
+            <input id="homeworkInput" type="text" class="input" placeholder="Add a homework task" style="flex:1;" />
+            <input id="homeworkMinutes" type="number" min="0" step="5" class="input" placeholder="min" style="width:70px;" />
+          </div>
+          <div style="display:flex;gap:6px;margin-bottom:14px;">
+            <span style="font-size:11px;color:var(--ink3);align-self:center;">Priority:</span>
+            <button type="button" class="chip" data-priority-pick="low" style="font-size:11px;">Low</button>
+            <button type="button" class="chip" data-priority-pick="medium" style="font-size:11px;border-color:var(--burgundy-light);color:var(--burgundy-light);">Medium</button>
+            <button type="button" class="chip" data-priority-pick="high" style="font-size:11px;">High</button>
+            <button id="btnAddHomework" class="btn btn-ghost btn-sm" style="margin-left:auto;">Add</button>
           </div>
 
-          <div id="homeworkList" style="max-height:340px;overflow-y:auto;"></div>
+          <div id="homeworkList" style="max-height:420px;overflow-y:auto;"></div>
         </section>
       </div>
 
-      <footer class="site-foot">The A* Mentor — your study data stays in your browser's local storage.</footer>
+      <footer class="site-foot">The A* Mentor. Your study data stays in your browser's local storage.</footer>
     </div>
   </main>
 </div>
@@ -69,6 +88,10 @@
   'use strict';
   const M = window.MentorShared;
   let state = M.loadState();
+  let pendingPriority = 'medium';
+
+  const PRIORITY_ORDER = { high: 0, medium: 1, low: 2 };
+  const PRIORITY_COLOR = { high: 'var(--danger)', medium: 'var(--warn)', low: 'var(--ink3)' };
 
   function renderTimetable() {
     const list = document.getElementById('timetableList');
@@ -76,32 +99,68 @@
       <label class="row" style="cursor:pointer;">
         <input type="checkbox" data-action="toggle-freeperiod" data-day="${block.key}" ${state.freePeriodUsage[block.key] ? 'checked' : ''} />
         <span style="flex:1;min-width:0;">
-          <span class="row-title" style="display:block;${state.freePeriodUsage[block.key] ? 'color:var(--ok);' : ''}">${block.day} · ${block.period}</span>
+          <span class="row-title" style="display:block;${state.freePeriodUsage[block.key] ? 'color:var(--ok);' : ''}">${block.day}, ${block.period}</span>
           <span class="row-meta">${block.time}</span>
         </span>
         <span class="row-meta" style="font-family:var(--font-mono);">${block.minutes}m</span>
       </label>
     `).join('');
-
     const usedMinutes = M.TIMETABLE.filter(b => state.freePeriodUsage[b.key]).reduce((s, b) => s + b.minutes, 0);
     document.getElementById('freeTimeFraction').textContent = `${usedMinutes} / ${M.TOTAL_FREE_MINUTES} min`;
     document.getElementById('freeTimeBar').style.width = `${Math.round((usedMinutes / M.TOTAL_FREE_MINUTES) * 100)}%`;
+    renderTimeBudget();
+  }
+
+  function renderTimeBudget() {
+    const usedMinutes = M.TIMETABLE.filter(b => state.freePeriodUsage[b.key]).reduce((s, b) => s + b.minutes, 0);
+    const remaining = Math.max(0, M.TOTAL_FREE_MINUTES - usedMinutes);
+    const estTotal = state.homework.filter(t => !t.done).reduce((s, t) => s + (t.estMinutes || 0), 0);
+    document.getElementById('estTotalMinutes').textContent = `${estTotal} min`;
+    document.getElementById('remainingMinutes').textContent = `${remaining} min`;
+    const verdict = document.getElementById('timeVerdict');
+    const untimed = state.homework.filter(t => !t.done && !t.estMinutes).length;
+    if (estTotal === 0) {
+      verdict.textContent = untimed ? `${untimed} pending task${untimed === 1 ? ' has' : 's have'} no time estimate yet. Add one next to each task to see whether you're on track.` : 'No pending homework with a time estimate yet.';
+    } else if (estTotal <= remaining) {
+      verdict.textContent = `You're on track. Your pending workload fits comfortably inside your remaining free-period time this week.`;
+    } else {
+      verdict.textContent = `You're ${estTotal - remaining} minutes over your remaining free-period time this week. Consider moving some of this into an After School session.`;
+    }
   }
 
   function renderHomework() {
     const list = document.getElementById('homeworkList');
-    if (!state.homework.length) {
-      list.innerHTML = `<p style="font-size:13px;color:var(--ink3);text-align:center;padding:24px 0;border:1px dashed var(--line);border-radius:var(--radius-sm);">No homework logged. Fully cleared! 🎉</p>`;
+    const pending = state.homework.filter(t => !t.done).sort((a, b) => PRIORITY_ORDER[a.priority || 'medium'] - PRIORITY_ORDER[b.priority || 'medium']);
+    const done = state.homework.filter(t => t.done);
+
+    let html = '';
+    if (!pending.length) {
+      html += `<p style="font-size:13px;color:var(--ink3);text-align:center;padding:20px 0;border:1px dashed var(--line);border-radius:var(--radius-sm);">No pending homework. Fully cleared.</p>`;
     } else {
-      list.innerHTML = state.homework.map(t => `
+      html += pending.map(t => `
         <div class="row">
-          <input type="checkbox" data-action="toggle-homework" data-id="${t.id}" ${t.done ? 'checked' : ''} />
-          <span class="row-title truncate ${t.done ? 'strike' : ''}" style="flex:1;min-width:0;">${M.escapeHtml(t.text)}</span>
-          <button type="button" data-action="delete-homework" data-id="${t.id}" class="btn btn-sm btn-danger">✕</button>
+          <input type="checkbox" data-action="toggle-homework" data-id="${t.id}" />
+          <span style="width:8px;height:8px;border-radius:50%;background:${PRIORITY_COLOR[t.priority || 'medium']};flex-shrink:0;"></span>
+          <span class="row-title truncate" style="flex:1;min-width:0;">${M.escapeHtml(t.text)}</span>
+          ${t.estMinutes ? `<span class="row-meta" style="font-family:var(--font-mono);">${t.estMinutes}m</span>` : ''}
+          <button type="button" data-action="delete-homework" data-id="${t.id}" class="btn btn-sm btn-danger">Remove</button>
         </div>
       `).join('');
     }
+    if (done.length) {
+      html += `<details style="margin-top:14px;"><summary style="cursor:pointer;font-size:11.5px;font-weight:700;color:var(--ink3);">Completed (${done.length})</summary><div style="margin-top:8px;">`;
+      html += done.map(t => `
+        <div class="row">
+          <input type="checkbox" data-action="toggle-homework" data-id="${t.id}" checked />
+          <span class="row-title truncate strike" style="flex:1;min-width:0;">${M.escapeHtml(t.text)}</span>
+          <button type="button" data-action="delete-homework" data-id="${t.id}" class="btn btn-sm btn-danger">Remove</button>
+        </div>
+      `).join('');
+      html += '</div></details>';
+    }
+    list.innerHTML = html;
     document.getElementById('homeworkCountBadge').textContent = String(state.homework.length);
+    renderTimeBudget();
   }
 
   document.getElementById('timetableList').addEventListener('click', (e) => {
@@ -116,58 +175,36 @@
     if (cb) { const item = state.homework.find(t => t.id === cb.dataset.id); if (item) item.done = cb.checked; M.saveState(state); renderHomework(); }
   });
 
-  function addHomework(text) {
-    const trimmed = text.trim();
+  document.querySelectorAll('[data-priority-pick]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      pendingPriority = btn.dataset.priorityPick;
+      document.querySelectorAll('[data-priority-pick]').forEach(b => {
+        b.style.borderColor = 'var(--line)'; b.style.color = 'var(--ink2)';
+      });
+      btn.style.borderColor = 'var(--burgundy-light)'; btn.style.color = 'var(--burgundy-light)';
+    });
+  });
+
+  function addHomework() {
+    const textInput = document.getElementById('homeworkInput');
+    const minutesInput = document.getElementById('homeworkMinutes');
+    const trimmed = textInput.value.trim();
     if (!trimmed) return;
-    state.homework.push({ id: M.uid(), text: trimmed, done: false });
+    state.homework.push({ id: M.uid(), text: trimmed, done: false, priority: pendingPriority, estMinutes: minutesInput.value ? parseInt(minutesInput.value, 10) : null });
     M.saveState(state);
+    textInput.value = '';
+    minutesInput.value = '';
     renderHomework();
   }
-  document.getElementById('btnAddHomework').addEventListener('click', () => {
-    addHomework(document.getElementById('homeworkInput').value);
-    document.getElementById('homeworkInput').value = '';
-  });
-  document.getElementById('homeworkInput').addEventListener('keydown', (e) => {
-    if (e.key === 'Enter') { addHomework(document.getElementById('homeworkInput').value); document.getElementById('homeworkInput').value = ''; }
-  });
+  document.getElementById('btnAddHomework').addEventListener('click', addHomework);
+  document.getElementById('homeworkInput').addEventListener('keydown', (e) => { if (e.key === 'Enter') addHomework(); });
 
   document.getElementById('btnFastTrack').addEventListener('click', () => {
-    const next = state.homework.find(t => !t.done);
-    if (!next) { alert('No pending homework — you are fully cleared! 🎉'); return; }
-    next.done = true;
+    const pending = state.homework.filter(t => !t.done).sort((a, b) => PRIORITY_ORDER[a.priority || 'medium'] - PRIORITY_ORDER[b.priority || 'medium']);
+    if (!pending.length) { alert('No pending homework. You are fully cleared.'); return; }
+    pending[0].done = true;
     M.saveState(state);
     renderHomework();
-  });
-
-  function parseHomeworkFileText(rawText, filename) {
-    const isCsv = /\.(csv|tsv)$/i.test(filename);
-    const lines = rawText.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
-    if (!lines.length) return [];
-    if (!isCsv) return lines;
-    const delimiter = filename.toLowerCase().endsWith('.tsv') ? '\t' : ',';
-    const headerLooksLikeHeader = /subject|task|assignment|title|description|due/i.test(lines[0]) && !/\d/.test(lines[0]);
-    const dataLines = headerLooksLikeHeader ? lines.slice(1) : lines;
-    return dataLines.map(line => line.split(delimiter).map(cell => cell.trim().replace(/^"|"$/g, '')).filter(Boolean).join(' — ')).filter(Boolean);
-  }
-
-  document.getElementById('btnUploadHomework').addEventListener('click', () => document.getElementById('homeworkFileInput').click());
-  document.getElementById('homeworkFileInput').addEventListener('change', (e) => {
-    const file = e.target.files && e.target.files[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = () => {
-      const lines = parseHomeworkFileText(String(reader.result || ''), file.name);
-      if (!lines.length) {
-        alert('No assignments could be read from that file.');
-      } else {
-        lines.forEach(line => state.homework.push({ id: M.uid(), text: line, done: false }));
-        M.saveState(state);
-        renderHomework();
-        alert(`Imported ${lines.length} assignment${lines.length === 1 ? '' : 's'} from "${file.name}".`);
-      }
-      e.target.value = '';
-    };
-    reader.readAsText(file);
   });
 
   renderTimetable();

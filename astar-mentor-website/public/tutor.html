@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>AI Tutor — The A* Mentor</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🎓</text></svg>" />
+<script>
+  (function () { try { var t = localStorage.getItem('a_star_theme'); if (t === 'light' || t === 'dark') document.documentElement.setAttribute('data-theme', t); } catch (e) {} })();
+</script>
+<link rel="stylesheet" href="styles.css" />
+<style>
+  .msg-bubble { max-width: 82%; white-space: pre-wrap; word-wrap: break-word; }
+  .typing-dot { animation: typingBounce 1.1s infinite ease-in-out; }
+  .typing-dot:nth-child(2) { animation-delay: 0.15s; }
+  .typing-dot:nth-child(3) { animation-delay: 0.3s; }
+  @keyframes typingBounce { 0%, 60%, 100% { transform: translateY(0); opacity: 0.4; } 30% { transform: translateY(-4px); opacity: 1; } }
+  .thumb-wrap { position: relative; display: inline-block; }
+  .thumb-remove { position: absolute; top: -6px; right: -6px; width: 20px; height: 20px; border-radius: 50%; background: var(--danger); color: #fff; font-size: 11px; display: flex; align-items: center; justify-content: center; border: 2px solid var(--panel); }
+</style>
+</head>
+<body>
+<div class="app-shell">
+  <div id="sidebarMount"></div>
+  <main class="main-col">
+    <div class="main-inner" style="max-width:920px;">
+
+      <div class="page-header" style="display:flex;justify-content:space-between;align-items:flex-end;flex-wrap:wrap;gap:10px;">
+        <div>
+          <div class="page-eyebrow">🎓 AI Tutor</div>
+          <h1 class="page-title">Ask Claude</h1>
+          <p class="page-sub">Reads your live study state. Attach a photo of a question, run a past paper, or ask for homework.</p>
+        </div>
+        <span class="badge badge-neutral" id="engineBadge">Checking connection…</span>
+      </div>
+
+      <div id="suggestionRow" style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:14px;"></div>
+
+      <section class="card fade-in" style="display:flex;flex-direction:column;height:60vh;overflow:hidden;">
+        <div id="chatWindow" style="flex:1;overflow-y:auto;padding:20px;display:flex;flex-direction:column;gap:14px;"></div>
+
+        <div id="imagePreviewRow" style="display:none;gap:8px;padding:0 16px;"></div>
+
+        <form id="chatForm" style="border-top:1px solid var(--line);padding:12px 14px;display:flex;align-items:center;gap:8px;">
+          <button type="button" id="btnAttachImage" class="btn btn-ghost btn-sm" title="Attach an image">📎</button>
+          <input id="imageFileInput" type="file" accept="image/*" multiple style="display:none;" />
+          <input id="chatInput" type="text" class="input" autocomplete="off" placeholder="Ask about a topic, request homework, or say 'run through paper 1 with me'…" style="flex:1;" />
+          <button type="submit" class="btn btn-primary">Send</button>
+        </form>
+      </section>
+
+      <details style="margin-top:16px;">
+        <summary style="cursor:pointer;font-size:12px;font-weight:700;color:var(--ink3);">⚙️ Connection settings</summary>
+        <div class="card card-pad fade-in" style="margin-top:10px;font-size:12.5px;color:var(--ink2);line-height:1.6;">
+          <p style="margin:0 0 8px;">This page talks to your own server at <code id="apiUrlDisplay" style="font-family:var(--font-mono);"></code>. If that server has <code style="font-family:var(--font-mono);">ANTHROPIC_API_KEY</code> configured, you get real Claude responses. If it's unreachable or not yet configured, this page automatically falls back to a built-in offline Mentor Engine covering all 26 syllabus topics.</p>
+          <p style="margin:0;">See the project README for how to set <code style="font-family:var(--font-mono);">ANTHROPIC_API_KEY</code> on Render.</p>
+        </div>
+      </details>
+
+      <footer class="site-foot">The A* Mentor — chat history stays in your browser's local storage.</footer>
+    </div>
+  </main>
+</div>
+
+<script src="mentor-shared.js"></script>
+<script src="nav.js"></script>
+<script src="tutor-engine.js"></script>
+<script>
+(function () {
+  'use strict';
+  const M = window.MentorShared;
+  const CHAT_STORAGE_KEY = 'a_star_tutor_chat_v1';
+  const API_URL = '/api/chat';
+  document.getElementById('apiUrlDisplay').textContent = location.origin + API_URL;
+
+  const chatWindow = document.getElementById('chatWindow');
+  const chatForm = document.getElementById('chatForm');
+  const chatInput = document.getElementById('chatInput');
+  const suggestionRow = document.getElementById('suggestionRow');
+  const engineBadge = document.getElementById('engineBadge');
+  const imagePreviewRow = document.getElementById('imagePreviewRow');
+
+  let pendingImages = []; // [{mediaType, data, name}]
+  let backendAvailable = null;
+
+  function loadChatHistory() {
+    try { const raw = localStorage.getItem(CHAT_STORAGE_KEY); return raw ? JSON.parse(raw) : []; }
+    catch (e) { return []; }
+  }
+  function saveChatHistory(history) {
+    try { localStorage.setItem(CHAT_STORAGE_KEY, JSON.stringify(history.slice(-200))); } catch (e) {}
+  }
+  let chatHistory = loadChatHistory();
+
+  function renderMessage(msg) {
+    const isUser = msg.role === 'user';
+    const wrap = document.createElement('div');
+    wrap.style.display = 'flex';
+    wrap.style.justifyContent = isUser ? 'flex-end' : 'flex-start';
+    wrap.className = 'fade-in';
+    const bubble = document.createElement('div');
+    bubble.className = 'msg-bubble';
+    bubble.style.borderRadius = '16px';
+    bubble.style.padding = '10px 14px';
+    bubble.style.fontSize = '13.5px';
+    if (isUser) {
+      bubble.style.background = 'var(--brand)';
+      bubble.style.color = '#fff';
+      bubble.style.borderBottomRightRadius = '4px';
+      bubble.textContent = msg.text;
+    } else {
+      bubble.style.background = 'var(--panel2)';
+      bubble.style.border = '1px solid var(--line)';
+      bubble.style.borderBottomLeftRadius = '4px';
+      bubble.classList.add('prose-serif');
+      bubble.style.fontSize = '14px';
+      bubble.textContent = msg.text;
+    }
+    wrap.appendChild(bubble);
+    chatWindow.appendChild(wrap);
+
+    if (!isUser) {
+      const homeworkLines = extractHomeworkFence(msg.text);
+      if (homeworkLines.length) {
+        const btnWrap = document.createElement('div');
+        btnWrap.style.display = 'flex';
+        btnWrap.style.justifyContent = 'flex-start';
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'btn btn-primary btn-sm';
+        btn.textContent = `➕ Add ${homeworkLines.length} task${homeworkLines.length === 1 ? '' : 's'} to my Homework List`;
+        btn.addEventListener('click', () => {
+          const state = M.loadState();
+          homeworkLines.forEach(line => state.homework.push({ id: M.uid(), text: line, done: false }));
+          M.saveState(state);
+          btn.textContent = '✅ Added to Homework List';
+          btn.disabled = true;
+        });
+        btnWrap.appendChild(btn);
+        chatWindow.appendChild(btnWrap);
+      }
+    }
+    chatWindow.scrollTop = chatWindow.scrollHeight;
+  }
+
+  function extractHomeworkFence(text) {
+    const match = text.match(/```homework\s*([\s\S]*?)```/i);
+    if (!match) return [];
+    return match[1].split(/\r?\n/).map(l => l.trim()).filter(Boolean);
+  }
+
+  function renderAllMessages() {
+    chatWindow.innerHTML = '';
+    if (!chatHistory.length) {
+      chatHistory = [{ role: 'assistant', text: TutorEngine.buildWelcomeMessage(M.loadState()) }];
+      saveChatHistory(chatHistory);
+    }
+    chatHistory.forEach(renderMessage);
+  }
+
+  function showTyping() {
+    const wrap = document.createElement('div');
+    wrap.id = 'typingIndicator';
+    wrap.style.display = 'flex';
+    wrap.className = 'fade-in';
+    wrap.innerHTML = `<div class="msg-bubble" style="border-radius:16px;padding:12px 14px;background:var(--panel2);border:1px solid var(--line);display:flex;gap:6px;">
+      <span class="typing-dot" style="width:6px;height:6px;border-radius:50%;background:var(--ink3);"></span>
+      <span class="typing-dot" style="width:6px;height:6px;border-radius:50%;background:var(--ink3);"></span>
+      <span class="typing-dot" style="width:6px;height:6px;border-radius:50%;background:var(--ink3);"></span>
+    </div>`;
+    chatWindow.appendChild(wrap);
+    chatWindow.scrollTop = chatWindow.scrollHeight;
+  }
+  function hideTyping() { const el = document.getElementById('typingIndicator'); if (el) el.remove(); }
+
+  function setEngineBadge(mode) {
+    if (mode === 'claude') { engineBadge.textContent = '● Connected to Claude'; engineBadge.className = 'badge badge-ok'; }
+    else if (mode === 'checking') { engineBadge.textContent = 'Checking connection…'; engineBadge.className = 'badge badge-neutral'; }
+    else { engineBadge.textContent = '○ Offline Mentor Engine'; engineBadge.className = 'badge badge-warn'; }
+  }
+
+  async function callBackend(message, images) {
+    const state = M.loadState();
+    const context = {
+      onboarded: state.onboarded,
+      mentorStrategyText: state.mentorStrategyText,
+      anxiety: state.anxiety,
+      confidence: state.confidence,
+      highPriorityTopics: M.ALL_LEAVES.filter(l => state.syllabus[l.subject][l.topicName][l.leafName].highPriority).map(l => `${M.SUBJECT_LABELS[l.subject]}: ${l.leafName}`),
+      criticalDecayTopics: M.computeCriticalDecayLeaves(state).map(l => `${M.SUBJECT_LABELS[l.subject]}: ${l.leafName}`),
+      overallMasteryPct: M.computeOverallMasteryPct(state),
+      pendingHomework: state.homework.filter(t => !t.done).map(t => t.text),
+    };
+    const priorHistory = chatHistory.slice(0, -1).slice(-16).map(m => ({ role: m.role, text: m.text }));
+
+    const res = await fetch(API_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ message, images, history: priorHistory, context }),
+    });
+    if (!res.ok) {
+      const errBody = await res.json().catch(() => ({}));
+      throw new Error(errBody.error || `Server responded ${res.status}`);
+    }
+    const data = await res.json();
+    if (!data || typeof data.reply !== 'string') throw new Error('Malformed server response');
+    return data.reply;
+  }
+
+  async function checkBackend() {
+    try {
+      const res = await fetch(API_URL.replace('/chat', '/health'));
+      if (!res.ok) throw new Error('not ok');
+      const data = await res.json();
+      if (data && data.hasApiKey) { backendAvailable = true; setEngineBadge('claude'); return; }
+      throw new Error('no api key configured');
+    } catch (e) {
+      backendAvailable = false;
+      setEngineBadge('offline');
+    }
+  }
+
+  async function handleSend(text) {
+    const trimmed = text.trim();
+    if (!trimmed && !pendingImages.length) return;
+
+    const userDisplayText = trimmed || `(sent ${pendingImages.length} image${pendingImages.length === 1 ? '' : 's'})`;
+    chatHistory.push({ role: 'user', text: userDisplayText });
+    renderMessage({ role: 'user', text: userDisplayText });
+    saveChatHistory(chatHistory);
+    chatInput.value = '';
+    const imagesToSend = pendingImages;
+    clearImages();
+
+    showTyping();
+    let reply;
+    try {
+      if (backendAvailable === false) throw new Error('backend unavailable');
+      reply = await callBackend(trimmed || 'Please look at the attached image.', imagesToSend);
+      backendAvailable = true;
+      setEngineBadge('claude');
+    } catch (err) {
+      backendAvailable = false;
+      setEngineBadge('offline');
+      reply = TutorEngine.generateLocalReply(trimmed, M.loadState());
+    }
+    hideTyping();
+    chatHistory.push({ role: 'assistant', text: reply });
+    renderMessage({ role: 'assistant', text: reply });
+    saveChatHistory(chatHistory);
+  }
+
+  chatForm.addEventListener('submit', (e) => { e.preventDefault(); handleSend(chatInput.value); });
+
+  function renderImagePreviews() {
+    if (!pendingImages.length) { imagePreviewRow.style.display = 'none'; imagePreviewRow.innerHTML = ''; return; }
+    imagePreviewRow.style.display = 'flex';
+    imagePreviewRow.innerHTML = pendingImages.map((img, i) => `
+      <span class="thumb-wrap">
+        <img src="data:${img.mediaType};base64,${img.data}" style="width:48px;height:48px;object-fit:cover;border-radius:8px;border:1px solid var(--line);" />
+        <span class="thumb-remove" data-remove-index="${i}">✕</span>
+      </span>
+    `).join('');
+  }
+  function clearImages() { pendingImages = []; renderImagePreviews(); }
+
+  imagePreviewRow.addEventListener('click', (e) => {
+    const btn = e.target.closest('[data-remove-index]');
+    if (!btn) return;
+    pendingImages.splice(parseInt(btn.dataset.removeIndex, 10), 1);
+    renderImagePreviews();
+  });
+
+  document.getElementById('btnAttachImage').addEventListener('click', () => document.getElementById('imageFileInput').click());
+  document.getElementById('imageFileInput').addEventListener('change', (e) => {
+    const files = Array.from(e.target.files || []);
+    files.forEach(file => {
+      const reader = new FileReader();
+      reader.onload = () => {
+        const dataUrl = String(reader.result || '');
+        const base64 = dataUrl.split(',')[1] || '';
+        pendingImages.push({ mediaType: file.type || 'image/png', data: base64, name: file.name });
+        renderImagePreviews();
+      };
+      reader.readAsDataURL(file);
+    });
+    e.target.value = '';
+  });
+
+  const SUGGESTIONS = [
+    'What should I study now?',
+    'Quiz me on economics',
+    'Explain the Krebs cycle like an expert tutor',
+    'Set me homework on oligopoly',
+    "Run through a past paper question by question",
+  ];
+  suggestionRow.innerHTML = SUGGESTIONS.map(s => `<button type="button" class="chip" data-suggestion="${M.escapeHtml(s)}">${M.escapeHtml(s)}</button>`).join('');
+  suggestionRow.addEventListener('click', (e) => {
+    const btn = e.target.closest('[data-suggestion]');
+    if (btn) handleSend(btn.dataset.suggestion);
+  });
+
+  setEngineBadge('checking');
+  checkBackend();
+  renderAllMessages();
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>After School — The A* Mentor</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🧠</text></svg>" />
+<script>
+  (function () { try { var t = localStorage.getItem('a_star_theme'); if (t === 'light' || t === 'dark') document.documentElement.setAttribute('data-theme', t); } catch (e) {} })();
+</script>
+<link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+<div class="app-shell">
+  <div id="sidebarMount"></div>
+  <main class="main-col">
+    <div class="main-inner" style="max-width:760px;">
+
+      <div class="page-header">
+        <div class="page-eyebrow">🌙 After School Zone</div>
+        <h1 class="page-title">Fixed Daily Active-Recall Blocks</h1>
+        <p class="page-sub">Two short, high-yield sessions every evening.</p>
+      </div>
+
+      <div class="grid grid-2">
+        <section class="card card-pad fade-in">
+          <div style="display:flex;justify-content:space-between;align-items:baseline;">
+            <p class="card-title" style="margin:0;">15-Min Fast Recall Blurting</p>
+            <span class="row-meta">Sessions: <b id="blurtingCount">0</b></span>
+          </div>
+          <p class="card-sub">Free-write everything you remember, no notes.</p>
+          <button id="btnBlurting" class="btn btn-block"></button>
+        </section>
+
+        <section class="card card-pad fade-in">
+          <div style="display:flex;justify-content:space-between;align-items:baseline;">
+            <p class="card-title" style="margin:0;">45-Min Weak Spot Blitz</p>
+            <span class="row-meta">Sessions: <b id="weakSpotCount">0</b></span>
+          </div>
+          <p class="card-sub">Completing this refreshes decay timers on all High-Priority topics.</p>
+          <button id="btnWeakSpot" class="btn btn-block"></button>
+        </section>
+      </div>
+
+      <footer class="site-foot">The A* Mentor — your study data stays in your browser's local storage.</footer>
+    </div>
+  </main>
+</div>
+
+<script src="mentor-shared.js"></script>
+<script src="nav.js"></script>
+<script>
+(function () {
+  'use strict';
+  const M = window.MentorShared;
+  let state = M.loadState();
+
+  function render() {
+    const blurtingDoneToday = state.afterSchool.blurtingLastDone === M.todayDateString();
+    const btnBlurting = document.getElementById('btnBlurting');
+    btnBlurting.textContent = blurtingDoneToday ? '✓ Completed Today' : 'Mark Complete';
+    btnBlurting.className = 'btn btn-block ' + (blurtingDoneToday ? 'btn-ghost' : 'btn-primary');
+    document.getElementById('blurtingCount').textContent = String(state.afterSchool.blurtingCount);
+
+    const weakSpotDoneToday = state.afterSchool.weakSpotLastDone === M.todayDateString();
+    const btnWeakSpot = document.getElementById('btnWeakSpot');
+    btnWeakSpot.textContent = weakSpotDoneToday ? '✓ Completed Today' : 'Mark Complete & Refresh Decay Timers';
+    btnWeakSpot.className = 'btn btn-block ' + (weakSpotDoneToday ? 'btn-ghost' : 'btn-primary');
+    document.getElementById('weakSpotCount').textContent = String(state.afterSchool.weakSpotCount);
+  }
+
+  document.getElementById('btnBlurting').addEventListener('click', () => {
+    if (state.afterSchool.blurtingLastDone === M.todayDateString()) return;
+    state.afterSchool.blurtingLastDone = M.todayDateString();
+    state.afterSchool.blurtingCount += 1;
+    M.saveState(state);
+    render();
+  });
+
+  document.getElementById('btnWeakSpot').addEventListener('click', () => {
+    if (state.afterSchool.weakSpotLastDone === M.todayDateString()) return;
+    state.afterSchool.weakSpotLastDone = M.todayDateString();
+    state.afterSchool.weakSpotCount += 1;
+    M.ALL_LEAVES.forEach(l => {
+      const leafState = state.syllabus[l.subject][l.topicName][l.leafName];
+      if (leafState.highPriority) leafState.lastRevised = Date.now();
+    });
+    M.saveState(state);
+    render();
+  });
+
+  render();
+})();
+</script>
+</body>
+</html>

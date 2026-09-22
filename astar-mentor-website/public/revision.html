@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Syllabus Checklist — The A* Mentor</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🧠</text></svg>" />
+<script>
+  (function () { try { var t = localStorage.getItem('a_star_theme'); if (t === 'light' || t === 'dark') document.documentElement.setAttribute('data-theme', t); } catch (e) {} })();
+</script>
+<link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+<div class="app-shell">
+  <div id="sidebarMount"></div>
+  <main class="main-col">
+    <div class="main-inner">
+
+      <div class="page-header">
+        <div class="page-eyebrow">📘 The A* Engine</div>
+        <h1 class="page-title">Official Syllabus Checklist</h1>
+        <p class="page-sub">All 26 topics across AQA Biology, OCR A Maths and Edexcel Economics — with Ebbinghaus retention tracking.</p>
+      </div>
+
+      <div class="grid grid-3" id="syllabusContainer"></div>
+
+      <footer class="site-foot">The A* Mentor — your study data stays in your browser's local storage.</footer>
+    </div>
+  </main>
+</div>
+
+<script src="mentor-shared.js"></script>
+<script src="nav.js"></script>
+<script>
+(function () {
+  'use strict';
+  const M = window.MentorShared;
+  let state = M.loadState();
+
+  function renderLeafRow(subject, topicName, leafName, indent) {
+    const leafState = state.syllabus[subject][topicName][leafName];
+    const badge = M.getRetentionBadge(leafState.lastRevised);
+    return `
+      <div class="row" style="${indent ? 'margin-left:16px;' : ''}">
+        <label style="display:flex;align-items:center;gap:8px;flex:1;min-width:0;cursor:pointer;">
+          <input type="checkbox" data-action="toggle-leaf" data-subject="${subject}" data-topic="${M.escapeHtml(topicName)}" data-leaf="${M.escapeHtml(leafName)}" ${leafState.done ? 'checked' : ''} />
+          <span class="truncate" style="font-size:12.5px;${leafState.done ? 'text-decoration:line-through;color:var(--ink3);' : ''}">${M.escapeHtml(leafName)}</span>
+          ${leafState.highPriority ? '<span title="High-Priority this week" style="color:var(--warn);">★</span>' : ''}
+        </label>
+        <span class="badge ${badge.cls}" title="Last revised: ${M.daysAgoLabel(leafState.lastRevised)}">${badge.label}</span>
+        <button type="button" data-action="revise-leaf" data-subject="${subject}" data-topic="${M.escapeHtml(topicName)}" data-leaf="${M.escapeHtml(leafName)}" title="Mark as revised now" class="btn btn-sm btn-ghost">🔄</button>
+      </div>
+    `;
+  }
+
+  function renderSubjectCard(subjectKey) {
+    const subj = M.SYLLABUS[subjectKey];
+    let doneCount = 0, total = 0;
+    const rows = subj.topics.map(topic => {
+      const isFlat = topic.leaves.length === 1 && topic.leaves[0] === topic.name;
+      topic.leaves.forEach(leaf => { total++; if (state.syllabus[subjectKey][topic.name][leaf].done) doneCount++; });
+      if (isFlat) return renderLeafRow(subjectKey, topic.name, topic.leaves[0], false);
+      const leafRows = topic.leaves.map(leaf => renderLeafRow(subjectKey, topic.name, leaf, true)).join('');
+      return `<p style="font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:0.04em;color:var(--ink3);margin:12px 0 6px;">${M.escapeHtml(topic.name)}</p>${leafRows}`;
+    }).join('');
+
+    return `
+      <section class="card card-pad fade-in">
+        <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px;">
+          <p class="card-title" style="margin:0;color:var(--${subj.accent});">${subj.label}</p>
+          <span class="row-meta" style="font-family:var(--font-mono);">${doneCount}/${total}</span>
+        </div>
+        ${rows}
+      </section>
+    `;
+  }
+
+  function renderAll() {
+    document.getElementById('syllabusContainer').innerHTML = Object.keys(M.SYLLABUS).map(renderSubjectCard).join('');
+  }
+
+  document.getElementById('syllabusContainer').addEventListener('click', (e) => {
+    const revise = e.target.closest('[data-action="revise-leaf"]');
+    if (revise) {
+      state.syllabus[revise.dataset.subject][revise.dataset.topic][revise.dataset.leaf].lastRevised = Date.now();
+      M.saveState(state);
+      renderAll();
+      return;
+    }
+    const cb = e.target.closest('input[data-action="toggle-leaf"]');
+    if (cb) {
+      state.syllabus[cb.dataset.subject][cb.dataset.topic][cb.dataset.leaf].done = cb.checked;
+      M.saveState(state);
+      renderAll();
+    }
+  });
+
+  renderAll();
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,1305 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>The A* Mentor Dashboard</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🧠</text></svg>" />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+  tailwind.config = {
+    darkMode: 'class',
+    theme: {
+      extend: {
+        fontFamily: {
+          sans: ['Inter', 'ui-sans-serif', 'system-ui', 'sans-serif'],
+          mono: ['"JetBrains Mono"', 'ui-monospace', 'monospace'],
+        },
+        colors: {
+          brand: {
+            50: '#eef2ff', 100: '#e0e7ff', 200: '#c7d2fe', 300: '#a5b4fc',
+            400: '#818cf8', 500: '#6366f1', 600: '#4f46e5', 700: '#4338ca',
+            800: '#3730a3', 900: '#312e81',
+          },
+        },
+        boxShadow: {
+          glow: '0 0 0 1px rgba(99,102,241,0.15), 0 8px 30px -4px rgba(99,102,241,0.25)',
+          glowRed: '0 0 0 1px rgba(239,68,68,0.25), 0 8px 30px -4px rgba(239,68,68,0.35)',
+          glowAmber: '0 0 0 1px rgba(245,158,11,0.25), 0 8px 30px -4px rgba(245,158,11,0.35)',
+          glowEmerald: '0 0 0 1px rgba(16,185,129,0.25), 0 8px 30px -4px rgba(16,185,129,0.35)',
+        },
+      },
+    },
+  };
+</script>
+<style>
+  html { color-scheme: dark; }
+  body { background-color: #05050a; }
+  ::-webkit-scrollbar { width: 8px; height: 8px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: #27272a; border-radius: 9999px; }
+  ::-webkit-scrollbar-thumb:hover { background: #3f3f46; }
+  .card {
+    background: linear-gradient(180deg, rgba(24,24,27,0.75) 0%, rgba(15,15,17,0.75) 100%);
+    border: 1px solid rgba(63,63,70,0.6);
+    backdrop-filter: blur(6px);
+  }
+  .bg-grid {
+    background-image: radial-gradient(circle at 1px 1px, rgba(99,102,241,0.15) 1px, transparent 0);
+    background-size: 28px 28px;
+  }
+  .fade-in { animation: fadeIn 0.18s ease-out; }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
+  input[type="checkbox"] { accent-color: #6366f1; }
+  input[type="range"] { -webkit-appearance: none; appearance: none; height: 6px; border-radius: 9999px; background: #27272a; }
+  input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none; appearance: none; width: 18px; height: 18px; border-radius: 9999px;
+    background: currentColor; cursor: pointer; border: 3px solid #0a0a0f;
+  }
+  input[type="range"]::-moz-range-thumb {
+    width: 18px; height: 18px; border-radius: 9999px; background: currentColor; cursor: pointer; border: 3px solid #0a0a0f;
+  }
+  .zone-sun { border-top: 3px solid #f59e0b; }
+  .zone-moon { border-top: 3px solid #818cf8; }
+  .zone-battery { border-top: 3px solid #10b981; }
+  .locked-overlay {
+    background: repeating-linear-gradient(135deg, rgba(0,0,0,0.35) 0px, rgba(0,0,0,0.35) 10px, rgba(0,0,0,0.2) 10px, rgba(0,0,0,0.2) 20px);
+  }
+</style>
+</head>
+<body class="min-h-screen bg-[#05050a] text-gray-100 bg-grid">
+
+<div class="min-h-screen w-full">
+
+  <!-- Header -->
+  <header class="sticky top-0 z-30 border-b border-gray-800/80 bg-[#05050a]/90 backdrop-blur supports-[backdrop-filter]:bg-[#05050a]/70">
+    <div class="mx-auto max-w-[1700px] px-4 sm:px-6 lg:px-8 py-4 flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+      <div class="flex items-center gap-3">
+        <div class="h-10 w-10 rounded-xl bg-gradient-to-br from-brand-500 to-indigo-700 flex items-center justify-center shadow-glow shrink-0">
+          <span class="text-lg">🧠</span>
+        </div>
+        <div>
+          <h1 class="text-lg sm:text-xl font-extrabold tracking-tight text-white leading-tight">The A* Mentor Dashboard</h1>
+          <p id="weekRangeLabel" class="text-xs sm:text-sm text-gray-400 font-medium">Loading week…</p>
+        </div>
+      </div>
+      <div class="flex items-center gap-2 sm:gap-3">
+        <div id="pomoMiniBadge" class="hidden sm:flex items-center gap-2 rounded-full border border-gray-800 bg-gray-900/60 px-3 py-1.5 text-xs font-mono text-gray-300">
+          <span class="h-1.5 w-1.5 rounded-full bg-gray-600" id="pomoMiniDot"></span>
+          <span id="pomoMiniText">25:00</span>
+        </div>
+        <a href="tutor.html" class="inline-flex items-center gap-2 rounded-lg border border-brand-500/50 bg-brand-500/10 hover:bg-brand-500/20 transition px-4 py-2 text-sm font-semibold text-brand-300">
+          <span>🎓</span> AI Tutor
+        </a>
+        <button id="btnResetWeek" class="inline-flex items-center gap-2 rounded-lg bg-brand-600 hover:bg-brand-500 active:bg-brand-700 transition px-4 py-2 text-sm font-semibold text-white shadow-glow">
+          <span>🔄</span> Reset Week
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <main class="mx-auto max-w-[1700px] px-4 sm:px-6 lg:px-8 py-6 space-y-6">
+
+    <!-- Mentor Strategy Banner -->
+    <section id="mentorBanner" class="card rounded-2xl p-5 fade-in">
+      <div class="flex items-start gap-3">
+        <div class="h-10 w-10 shrink-0 rounded-xl bg-brand-600/20 border border-brand-500/40 flex items-center justify-center text-lg">🎯</div>
+        <div class="min-w-0 flex-1">
+          <h2 class="text-xs font-bold uppercase tracking-wider text-brand-300 mb-1.5">Mentor Strategy Briefing</h2>
+          <p id="mentorStrategyText" class="text-sm text-gray-200 leading-relaxed">Complete your Weekly Strategy Briefing to receive personalised mentor guidance.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Time-Zone Segregated Interface -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+      <!-- SUN ZONE: School Free Periods -->
+      <section class="card zone-sun rounded-2xl p-5 fade-in flex flex-col">
+        <div class="flex items-center justify-between mb-1">
+          <h2 class="text-sm font-bold uppercase tracking-wider text-amber-300">☀️ School Free Periods Zone</h2>
+        </div>
+        <p class="text-xs text-gray-500 mb-4">Locked for School Homework &amp; Deadlines Only</p>
+
+        <ul id="timetableList" class="space-y-2 mb-4"></ul>
+
+        <div class="rounded-xl bg-gray-900/60 border border-gray-800 p-3 mb-4">
+          <div class="flex items-center justify-between text-xs text-gray-400 mb-1.5">
+            <span>Productive time used</span>
+            <span id="freeTimeFraction" class="font-mono text-gray-300">0 / 400 min</span>
+          </div>
+          <div class="h-2 w-full rounded-full bg-gray-800 overflow-hidden">
+            <div id="freeTimeBar" class="h-full rounded-full bg-gradient-to-r from-amber-500 to-brand-500 transition-all duration-300" style="width:0%"></div>
+          </div>
+        </div>
+
+        <div class="flex items-center justify-between mb-2">
+          <h3 class="text-xs font-bold uppercase tracking-wide text-gray-400">Homework &amp; Deadlines</h3>
+          <span id="homeworkCountBadge" class="text-[11px] font-mono bg-gray-800 text-gray-300 rounded-full px-2 py-0.5">0</span>
+        </div>
+
+        <button id="btnFastTrack" class="mb-2 w-full rounded-lg bg-amber-600 hover:bg-amber-500 transition px-3 py-2 text-xs font-bold text-black">
+          ⚡ Fast-Track Next Assignment
+        </button>
+
+        <div class="mb-2">
+          <button id="btnUploadHomework" type="button" class="w-full rounded-lg border border-dashed border-gray-700 hover:border-amber-600 hover:bg-amber-950/20 transition px-3 py-2 text-xs font-semibold text-gray-300">
+            📎 Upload Homework File (.txt / .csv)
+          </button>
+          <input id="homeworkFileInput" type="file" accept=".txt,.csv,.tsv,.md" class="hidden" />
+          <p class="text-[10px] text-gray-600 mt-1 leading-snug">Export your Teams/Outlook assignment list to a text or CSV file, then upload it here — one assignment per line.</p>
+        </div>
+
+        <div class="flex gap-2 mb-3">
+          <input id="homeworkInput" type="text" placeholder="Add a homework task…" class="flex-1 min-w-0 rounded-lg bg-gray-900 border border-gray-800 focus:border-amber-500 focus:ring-1 focus:ring-amber-500 outline-none px-3 py-2 text-sm text-gray-100 placeholder-gray-600" />
+          <button id="btnAddHomework" class="shrink-0 rounded-lg bg-gray-700 hover:bg-gray-600 transition px-3 py-2 text-sm font-semibold text-white">Add</button>
+        </div>
+
+        <ul id="homeworkList" class="space-y-2 overflow-y-auto max-h-[280px] pr-1"></ul>
+      </section>
+
+      <!-- MOON ZONE: After School -->
+      <section class="card zone-moon rounded-2xl p-5 fade-in flex flex-col">
+        <h2 class="text-sm font-bold uppercase tracking-wider text-indigo-300 mb-1">🌙 After School Zone</h2>
+        <p class="text-xs text-gray-500 mb-4">Fixed daily active-recall blocks</p>
+
+        <div class="rounded-xl bg-gray-900/50 border border-gray-800 p-4 mb-4">
+          <div class="flex items-center justify-between mb-2">
+            <p class="text-sm font-bold text-gray-100">15-Min Fast Recall Blurting</p>
+            <span class="text-[11px] font-mono text-gray-500">Sessions: <span id="blurtingCount">0</span></span>
+          </div>
+          <p class="text-xs text-gray-500 mb-3">Free-write everything you remember, no notes.</p>
+          <button id="btnBlurting" class="w-full rounded-lg px-3 py-2 text-xs font-bold transition"></button>
+        </div>
+
+        <div class="rounded-xl bg-gray-900/50 border border-gray-800 p-4">
+          <div class="flex items-center justify-between mb-2">
+            <p class="text-sm font-bold text-gray-100">45-Min High-Yield Year 12 Weak Spot Blitz</p>
+            <span class="text-[11px] font-mono text-gray-500">Sessions: <span id="weakSpotCount">0</span></span>
+          </div>
+          <p class="text-xs text-gray-500 mb-3">Completing this refreshes decay timers on all High-Priority topics.</p>
+          <button id="btnWeakSpot" class="w-full rounded-lg px-3 py-2 text-xs font-bold transition"></button>
+        </div>
+      </section>
+
+      <!-- BATTERY ZONE: Weekend Sprint -->
+      <section class="card zone-battery rounded-2xl p-5 fade-in flex flex-col relative overflow-hidden">
+        <h2 class="text-sm font-bold uppercase tracking-wider text-emerald-300 mb-1">🔋 Weekend Sprint Zone</h2>
+        <p id="weekendSubtitle" class="text-xs text-gray-500 mb-4">Extended deep-work sessions</p>
+
+        <div id="weekendContent" class="space-y-4 flex-1"></div>
+        <div id="weekendLockOverlay" class="hidden absolute inset-0 locked-overlay rounded-2xl flex items-center justify-center p-6 text-center">
+          <p class="text-sm font-bold text-gray-200">🔒 Unlocks automatically on Saturday &amp; Sunday</p>
+        </div>
+      </section>
+
+    </div>
+
+    <!-- Syllabus + Sidebar -->
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+
+      <!-- Full Syllabus Checklist -->
+      <section class="lg:col-span-8 card rounded-2xl p-5 fade-in">
+        <div class="flex items-center justify-between mb-4">
+          <h2 class="text-sm font-bold uppercase tracking-wider text-brand-300">Official Syllabus Checklist</h2>
+          <span class="text-[11px] text-gray-500">Ebbinghaus retention tracking active</span>
+        </div>
+        <div id="syllabusContainer" class="grid grid-cols-1 md:grid-cols-3 gap-5"></div>
+      </section>
+
+      <!-- Sidebar: Pomodoro -->
+      <aside class="lg:col-span-4 space-y-6">
+        <section class="card rounded-2xl p-5 fade-in">
+          <h2 class="text-sm font-bold uppercase tracking-wider text-brand-300 mb-4">Pomodoro Workspace</h2>
+          <div class="flex flex-col items-center justify-center py-4">
+            <div id="pomodoroDisplay" class="text-5xl font-mono font-bold tracking-tight text-white tabular-nums">25:00</div>
+            <p id="pomodoroStatus" class="text-xs text-gray-500 mt-2 uppercase tracking-wide">Ready to focus</p>
+          </div>
+          <div class="grid grid-cols-3 gap-2 mt-2">
+            <button id="btnPomStart" class="rounded-lg bg-emerald-600 hover:bg-emerald-500 transition px-3 py-2 text-xs font-bold text-white">Start</button>
+            <button id="btnPomPause" class="rounded-lg bg-amber-600 hover:bg-amber-500 transition px-3 py-2 text-xs font-bold text-white">Pause</button>
+            <button id="btnPomReset" class="rounded-lg bg-gray-700 hover:bg-gray-600 transition px-3 py-2 text-xs font-bold text-white">Reset</button>
+          </div>
+          <p class="text-[11px] text-gray-500 mt-3 text-center">Sessions completed: <span id="pomodoroCount" class="text-gray-300 font-semibold">0</span></p>
+        </section>
+
+        <section class="card rounded-2xl p-5 fade-in">
+          <h2 class="text-sm font-bold uppercase tracking-wider text-brand-300 mb-4">Quick Stats</h2>
+          <div class="grid grid-cols-2 gap-3">
+            <div class="rounded-xl bg-gray-900/50 border border-gray-800 p-3">
+              <p class="text-[10px] uppercase tracking-wide text-gray-500">High-Priority</p>
+              <p id="statHighPriority" class="text-xl font-extrabold text-brand-400">0</p>
+            </div>
+            <div class="rounded-xl bg-gray-900/50 border border-gray-800 p-3">
+              <p class="text-[10px] uppercase tracking-wide text-gray-500">Critical Decay</p>
+              <p id="statCriticalDecay" class="text-xl font-extrabold text-red-400">0</p>
+            </div>
+            <div class="rounded-xl bg-gray-900/50 border border-gray-800 p-3">
+              <p class="text-[10px] uppercase tracking-wide text-gray-500">Homework Cleared</p>
+              <p id="statHwPct" class="text-xl font-extrabold text-amber-400">0%</p>
+            </div>
+            <div class="rounded-xl bg-gray-900/50 border border-gray-800 p-3">
+              <p class="text-[10px] uppercase tracking-wide text-gray-500">Overall Mastery</p>
+              <p id="statOverallMastery" class="text-xl font-extrabold text-emerald-400">0%</p>
+            </div>
+          </div>
+        </section>
+      </aside>
+    </div>
+
+    <!-- Retention Analytics -->
+    <section class="card rounded-2xl p-5 fade-in">
+      <h2 class="text-sm font-bold uppercase tracking-wider text-brand-300 mb-4">Science-Based Retention Analytics</h2>
+
+      <h3 class="text-xs font-bold uppercase tracking-wider text-gray-400 mb-3">Syllabus Coverage Map</h3>
+      <div id="coverageContainer" class="grid grid-cols-1 sm:grid-cols-3 gap-5 mb-8"></div>
+
+      <h3 class="text-xs font-bold uppercase tracking-wider text-gray-400 mb-3">Exam Board Confidence Matrix <span class="text-gray-600 font-medium normal-case">(drag to rate 1–10)</span></h3>
+      <div id="confidenceContainer" class="space-y-5"></div>
+    </section>
+
+    <footer class="text-center text-[11px] text-gray-600 pb-6">
+      The A* Mentor Dashboard — runs entirely in your browser. All data stored locally, never leaves your device.
+    </footer>
+
+  </main>
+</div>
+
+<!-- ============ WEEKLY STRATEGY BRIEFING MODAL ============ -->
+<div id="onboardingModal" class="hidden fixed inset-0 z-50 items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
+  <div class="w-full max-w-2xl card rounded-2xl shadow-glow p-6 fade-in max-h-[92vh] overflow-y-auto">
+    <div class="flex items-start justify-between mb-1">
+      <div>
+        <h2 class="text-lg font-extrabold text-white">🎯 Weekly Strategy Briefing</h2>
+        <p class="text-xs text-gray-400 mt-1">Submitting will archive last week's homework and generate a fresh Mentor Strategy.</p>
+      </div>
+      <button id="btnCloseOnboarding" type="button" class="text-gray-500 hover:text-gray-300 text-xl leading-none">✕</button>
+    </div>
+
+    <form id="onboardingForm" class="mt-5 space-y-6">
+      <div>
+        <label class="block text-xs font-semibold text-brand-300 mb-2">1. Which exact syllabus points are you learning this week?</label>
+        <div id="onboardingTopicsContainer" class="space-y-4 max-h-64 overflow-y-auto rounded-lg border border-gray-800 bg-gray-900/40 p-3"></div>
+      </div>
+
+      <div>
+        <label class="block text-xs font-semibold text-brand-300 mb-2">2. Paste your raw homework text (Teams / Outlook / email)</label>
+        <textarea id="homeworkRawInput" rows="5" class="w-full rounded-lg bg-gray-900 border border-gray-800 focus:border-brand-500 focus:ring-1 focus:ring-brand-500 outline-none px-3 py-2 text-sm text-gray-100 placeholder-gray-600 resize-none font-mono" placeholder="Paste your homework list here — one assignment per line."></textarea>
+      </div>
+
+      <div>
+        <label class="block text-xs font-semibold text-brand-300 mb-3">3. Rate your baseline anxiety / readiness per subject (1 = calm, 10 = panicking)</label>
+        <div class="space-y-4">
+          <div>
+            <div class="flex items-center justify-between mb-1">
+              <span class="text-xs font-semibold text-emerald-400">Biology</span>
+              <span id="anxietyBiologyValue" class="text-xs font-mono text-gray-400">5 / 10</span>
+            </div>
+            <input id="anxietyBiology" type="range" min="1" max="10" value="5" style="color:#10b981" class="w-full text-emerald-500" />
+          </div>
+          <div>
+            <div class="flex items-center justify-between mb-1">
+              <span class="text-xs font-semibold text-sky-400">Maths</span>
+              <span id="anxietyMathsValue" class="text-xs font-mono text-gray-400">5 / 10</span>
+            </div>
+            <input id="anxietyMaths" type="range" min="1" max="10" value="5" style="color:#0ea5e9" class="w-full text-sky-500" />
+          </div>
+          <div>
+            <div class="flex items-center justify-between mb-1">
+              <span class="text-xs font-semibold text-amber-400">Economics</span>
+              <span id="anxietyEconomicsValue" class="text-xs font-mono text-gray-400">5 / 10</span>
+            </div>
+            <input id="anxietyEconomics" type="range" min="1" max="10" value="5" style="color:#f59e0b" class="w-full text-amber-500" />
+          </div>
+        </div>
+      </div>
+
+      <div class="flex items-center gap-3 pt-2">
+        <button type="submit" class="flex-1 rounded-lg bg-brand-600 hover:bg-brand-500 transition px-4 py-2.5 text-sm font-bold text-white shadow-glow">Generate My Mentor Strategy</button>
+        <button id="btnSkipOnboarding" type="button" class="rounded-lg border border-gray-700 hover:bg-gray-800 transition px-4 py-2.5 text-sm font-semibold text-gray-300">Skip</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+(function () {
+  'use strict';
+
+  /* ============================================================
+     CONSTANTS
+  ============================================================ */
+  const STORAGE_KEY = 'a_star_mentor_state_v1';
+
+  const TIMETABLE = [
+    { key: 'monday',    day: 'Monday',    period: 'P4-5', time: '11:30 – 12:50', minutes: 80 },
+    { key: 'tuesday',   day: 'Tuesday',   period: 'P1-2', time: '09:10 – 10:30', minutes: 80 },
+    { key: 'wednesday', day: 'Wednesday', period: 'P3',   time: '10:50 – 11:30', minutes: 40 },
+    { key: 'thursday',  day: 'Thursday',  period: 'P1-2', time: '09:10 – 10:30', minutes: 80 },
+    { key: 'friday',    day: 'Friday',    period: 'P3-5', time: '10:50 – 12:50', minutes: 120 },
+  ];
+  const TOTAL_FREE_MINUTES = TIMETABLE.reduce((sum, b) => sum + b.minutes, 0); // 400
+
+  const SYLLABUS = {
+    biology: {
+      label: 'AQA Biology — Section 5',
+      accent: 'emerald',
+      topics: [
+        { name: 'Photosynthesis', leaves: ['Light-dependent reactions', 'Light-independent reactions', 'Limiting factors'] },
+        { name: 'Respiration', leaves: ['Glycolysis', 'Link reaction', 'Krebs cycle', 'Oxidative phosphorylation', 'Anaerobic respiration'] },
+      ],
+    },
+    maths: {
+      label: 'OCR A Maths — Pure',
+      accent: 'sky',
+      topics: [
+        { name: 'Functions', leaves: ['Domain & Range', 'Composite functions', 'Inverse functions'] },
+        { name: 'Graph Transformations', leaves: ['y = |f(x)|', 'y = f(|x|)'] },
+        { name: 'Trigonometry', leaves: ['Reciprocal functions', 'Trigonometric identities', 'Trigonometric transformations'] },
+      ],
+    },
+    economics: {
+      label: 'Edexcel A Economics — Theme 3',
+      accent: 'amber',
+      topics: [
+        { name: 'Business Growth', leaves: ['Business Growth'] },
+        { name: 'Mergers', leaves: ['Mergers'] },
+        { name: 'Revenues', leaves: ['Revenues'] },
+        { name: 'Costs', leaves: ['Costs'] },
+        { name: 'Profits', leaves: ['Profits'] },
+        { name: 'Market Structures', leaves: ['Perfect Competition', 'Monopolistic Competition', 'Oligopoly', 'Monopoly'] },
+        { name: 'Market Failure & Regulation', leaves: ['Market Failure & Regulation'] },
+      ],
+    },
+  };
+
+  const SUBJECT_LABELS = { biology: 'Biology', maths: 'Maths', economics: 'Economics' };
+  const ACCENT_HEX = { emerald: '#10b981', sky: '#0ea5e9', amber: '#f59e0b' };
+  const ACCENT_TEXT_CLASS = { emerald: 'text-emerald-400', sky: 'text-sky-400', amber: 'text-amber-400' };
+
+  function flattenSyllabus() {
+    const out = [];
+    Object.keys(SYLLABUS).forEach(subject => {
+      SYLLABUS[subject].topics.forEach(topic => {
+        topic.leaves.forEach(leaf => out.push({ subject, topicName: topic.name, leafName: leaf }));
+      });
+    });
+    return out;
+  }
+  const ALL_LEAVES = flattenSyllabus();
+  const TOTAL_LEAVES = ALL_LEAVES.length;
+
+  const POMODORO_SECONDS = 25 * 60;
+
+  /* ============================================================
+     STATE
+  ============================================================ */
+  function makeDefaultSyllabusState() {
+    const s = {};
+    Object.keys(SYLLABUS).forEach(subject => {
+      s[subject] = {};
+      SYLLABUS[subject].topics.forEach(topic => {
+        s[subject][topic.name] = {};
+        topic.leaves.forEach(leaf => {
+          s[subject][topic.name][leaf] = { done: false, lastRevised: null, highPriority: false };
+        });
+      });
+    });
+    return s;
+  }
+
+  function mergeSyllabusState(saved) {
+    const fresh = makeDefaultSyllabusState();
+    if (!saved) return fresh;
+    Object.keys(fresh).forEach(subject => {
+      Object.keys(fresh[subject]).forEach(topic => {
+        Object.keys(fresh[subject][topic]).forEach(leaf => {
+          const savedLeaf = saved[subject] && saved[subject][topic] && saved[subject][topic][leaf];
+          if (savedLeaf) {
+            fresh[subject][topic][leaf] = Object.assign({}, fresh[subject][topic][leaf], savedLeaf);
+          }
+        });
+      });
+    });
+    return fresh;
+  }
+
+  function makeDefaultState() {
+    return {
+      weekStartDate: null,
+      onboarded: false,
+      mentorStrategyText: '',
+      homework: [],
+      syllabus: makeDefaultSyllabusState(),
+      confidence: { biology: 5, maths: 5, economics: 5 },
+      anxiety: { biology: 5, maths: 5, economics: 5 },
+      freePeriodUsage: { monday: false, tuesday: false, wednesday: false, thursday: false, friday: false },
+      afterSchool: { blurtingLastDone: null, blurtingCount: 0, weakSpotLastDone: null, weakSpotCount: 0 },
+      weekendSprint: { pastPaperDone: false, synthesisDone: false },
+      pomodorosCompleted: 0,
+    };
+  }
+
+  let state = loadState();
+
+  function loadState() {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (!raw) return makeDefaultState();
+      const parsed = JSON.parse(raw);
+      const defaults = makeDefaultState();
+      const merged = Object.assign({}, defaults, parsed);
+      merged.syllabus = mergeSyllabusState(parsed.syllabus);
+      merged.confidence = Object.assign({}, defaults.confidence, parsed.confidence || {});
+      merged.anxiety = Object.assign({}, defaults.anxiety, parsed.anxiety || {});
+      merged.freePeriodUsage = Object.assign({}, defaults.freePeriodUsage, parsed.freePeriodUsage || {});
+      merged.afterSchool = Object.assign({}, defaults.afterSchool, parsed.afterSchool || {});
+      merged.weekendSprint = Object.assign({}, defaults.weekendSprint, parsed.weekendSprint || {});
+      merged.homework = Array.isArray(parsed.homework) ? parsed.homework : [];
+      return merged;
+    } catch (e) {
+      console.error('Failed to load saved state, resetting.', e);
+      return makeDefaultState();
+    }
+  }
+
+  function saveState() {
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    } catch (e) {
+      console.error('Failed to save state to localStorage.', e);
+    }
+  }
+
+  /* ============================================================
+     HELPERS
+  ============================================================ */
+  function uid() {
+    return 'id-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 9);
+  }
+
+  function escapeHtml(str) {
+    const div = document.createElement('div');
+    div.textContent = String(str);
+    return div.innerHTML;
+  }
+
+  function getWeekSaturday(d) {
+    const date = new Date(d);
+    date.setHours(0, 0, 0, 0);
+    const day = date.getDay();
+    const diff = (day + 1) % 7;
+    date.setDate(date.getDate() - diff);
+    return date;
+  }
+
+  function formatDateShort(date) {
+    return date.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' });
+  }
+
+  function todayDateString() {
+    return new Date().toDateString();
+  }
+
+  function isWeekend() {
+    const d = new Date().getDay();
+    return d === 0 || d === 6;
+  }
+
+  function getRetentionBadge(lastRevised) {
+    if (!lastRevised) return { label: 'Not Revised', cls: 'bg-gray-700 text-gray-300' };
+    const days = (Date.now() - lastRevised) / 86400000;
+    if (days < 3) return { label: 'Fresh', cls: 'bg-emerald-600 text-white' };
+    if (days < 7) return { label: 'Review Due', cls: 'bg-amber-500 text-black' };
+    return { label: 'Critical Decay', cls: 'bg-red-600 text-white' };
+  }
+
+  function daysAgoLabel(lastRevised) {
+    if (!lastRevised) return 'never';
+    const days = Math.floor((Date.now() - lastRevised) / 86400000);
+    if (days <= 0) return 'today';
+    if (days === 1) return '1 day ago';
+    return `${days} days ago`;
+  }
+
+  /* ============================================================
+     DOM REFS
+  ============================================================ */
+  const el = (id) => document.getElementById(id);
+
+  const weekRangeLabel = el('weekRangeLabel');
+  const mentorStrategyTextEl = el('mentorStrategyText');
+  const mentorBanner = el('mentorBanner');
+
+  const timetableList = el('timetableList');
+  const freeTimeFraction = el('freeTimeFraction');
+  const freeTimeBar = el('freeTimeBar');
+
+  const homeworkList = el('homeworkList');
+  const homeworkInput = el('homeworkInput');
+  const homeworkCountBadge = el('homeworkCountBadge');
+
+  const syllabusContainer = el('syllabusContainer');
+  const coverageContainer = el('coverageContainer');
+  const confidenceContainer = el('confidenceContainer');
+
+  const weekendContent = el('weekendContent');
+  const weekendLockOverlay = el('weekendLockOverlay');
+  const weekendSubtitle = el('weekendSubtitle');
+
+  /* ============================================================
+     RENDER: HEADER / MENTOR BANNER
+  ============================================================ */
+  function renderHeader() {
+    if (!state.weekStartDate) {
+      weekRangeLabel.textContent = 'No active week — click "Reset Week"';
+      return;
+    }
+    const start = new Date(state.weekStartDate);
+    const end = new Date(start);
+    end.setDate(start.getDate() + 6);
+    weekRangeLabel.textContent = `Week of ${formatDateShort(start)} → ${formatDateShort(end)}, ${end.getFullYear()}`;
+  }
+
+  function renderMentorBanner() {
+    if (state.mentorStrategyText) {
+      mentorStrategyTextEl.textContent = state.mentorStrategyText;
+    } else {
+      mentorStrategyTextEl.textContent = 'Complete your Weekly Strategy Briefing to receive personalised mentor guidance.';
+    }
+    const maxAnxiety = Math.max(state.anxiety.biology, state.anxiety.maths, state.anxiety.economics);
+    mentorBanner.classList.remove('shadow-glowRed', 'shadow-glowAmber', 'shadow-glowEmerald');
+    if (!state.onboarded) return;
+    if (maxAnxiety >= 7) mentorBanner.classList.add('shadow-glowRed');
+    else if (maxAnxiety >= 4) mentorBanner.classList.add('shadow-glowAmber');
+    else mentorBanner.classList.add('shadow-glowEmerald');
+  }
+
+  /* ============================================================
+     RENDER: SCHOOL FREE PERIODS ZONE
+  ============================================================ */
+  function renderTimetable() {
+    timetableList.innerHTML = TIMETABLE.map(block => `
+      <li class="flex items-center justify-between gap-2 rounded-lg border border-gray-800 bg-gray-900/40 px-3 py-2">
+        <label class="flex items-center gap-2.5 min-w-0 cursor-pointer flex-1">
+          <input type="checkbox" data-action="toggle-freeperiod" data-day="${block.key}" ${state.freePeriodUsage[block.key] ? 'checked' : ''}
+            class="h-4 w-4 rounded border-gray-600 bg-gray-800 text-amber-500 focus:ring-amber-500 focus:ring-offset-gray-900 cursor-pointer shrink-0" />
+          <span class="min-w-0">
+            <span class="block text-xs font-semibold ${state.freePeriodUsage[block.key] ? 'text-amber-400' : 'text-gray-200'}">${block.day} · ${block.period}</span>
+            <span class="block text-[11px] text-gray-500">${block.time}</span>
+          </span>
+        </label>
+        <span class="text-[11px] font-mono text-gray-500 shrink-0">${block.minutes}m</span>
+      </li>
+    `).join('');
+
+    const usedMinutes = TIMETABLE.filter(b => state.freePeriodUsage[b.key]).reduce((s, b) => s + b.minutes, 0);
+    freeTimeFraction.textContent = `${usedMinutes} / ${TOTAL_FREE_MINUTES} min`;
+    freeTimeBar.style.width = `${Math.round((usedMinutes / TOTAL_FREE_MINUTES) * 100)}%`;
+  }
+
+  function renderHomework() {
+    if (!state.homework.length) {
+      homeworkList.innerHTML = `<li class="text-sm text-gray-500 italic px-1 py-6 text-center border border-dashed border-gray-800 rounded-lg">No homework logged. Fully cleared! 🎉</li>`;
+    } else {
+      homeworkList.innerHTML = state.homework.map(t => `
+        <li class="flex items-center justify-between gap-3 rounded-lg border border-gray-800 bg-gray-900/50 px-3 py-2.5 group hover:border-gray-700 transition">
+          <label class="flex items-center gap-3 flex-1 min-w-0 cursor-pointer">
+            <input type="checkbox" data-action="toggle-homework" data-id="${t.id}" ${t.done ? 'checked' : ''}
+              class="h-4 w-4 rounded border-gray-600 bg-gray-800 text-amber-500 focus:ring-amber-500 focus:ring-offset-gray-900 cursor-pointer shrink-0" />
+            <span class="truncate text-sm ${t.done ? 'line-through text-gray-500' : 'text-gray-200'}">${escapeHtml(t.text)}</span>
+          </label>
+          <button type="button" data-action="delete-homework" data-id="${t.id}" title="Delete"
+            class="opacity-60 group-hover:opacity-100 transition text-gray-500 hover:text-red-400 shrink-0 text-sm">✕</button>
+        </li>
+      `).join('');
+    }
+    homeworkCountBadge.textContent = String(state.homework.length);
+  }
+
+  /* ============================================================
+     RENDER: AFTER SCHOOL ZONE
+  ============================================================ */
+  function renderAfterSchoolZone() {
+    const blurtingDoneToday = state.afterSchool.blurtingLastDone === todayDateString();
+    const btnBlurting = el('btnBlurting');
+    btnBlurting.textContent = blurtingDoneToday ? '✓ Completed Today' : 'Mark Complete';
+    btnBlurting.className = 'w-full rounded-lg px-3 py-2 text-xs font-bold transition ' +
+      (blurtingDoneToday ? 'bg-indigo-900/50 text-indigo-300 border border-indigo-700 cursor-default' : 'bg-indigo-600 hover:bg-indigo-500 text-white');
+    el('blurtingCount').textContent = String(state.afterSchool.blurtingCount);
+
+    const weakSpotDoneToday = state.afterSchool.weakSpotLastDone === todayDateString();
+    const btnWeakSpot = el('btnWeakSpot');
+    btnWeakSpot.textContent = weakSpotDoneToday ? '✓ Completed Today' : 'Mark Complete & Refresh Decay Timers';
+    btnWeakSpot.className = 'w-full rounded-lg px-3 py-2 text-xs font-bold transition ' +
+      (weakSpotDoneToday ? 'bg-indigo-900/50 text-indigo-300 border border-indigo-700 cursor-default' : 'bg-indigo-600 hover:bg-indigo-500 text-white');
+    el('weakSpotCount').textContent = String(state.afterSchool.weakSpotCount);
+  }
+
+  /* ============================================================
+     RENDER: WEEKEND SPRINT ZONE
+  ============================================================ */
+  function renderWeekendZone() {
+    const weekend = isWeekend();
+    weekendLockOverlay.classList.toggle('hidden', weekend);
+    weekendSubtitle.textContent = weekend ? 'Active now — make it count' : 'Extended deep-work sessions';
+
+    weekendContent.innerHTML = `
+      <label class="flex items-start gap-3 rounded-xl bg-gray-900/50 border border-gray-800 p-4 ${weekend ? 'cursor-pointer' : 'cursor-not-allowed opacity-60'}">
+        <input type="checkbox" data-action="toggle-weekend" data-key="pastPaperDone" ${state.weekendSprint.pastPaperDone ? 'checked' : ''} ${weekend ? '' : 'disabled'}
+          class="h-4 w-4 mt-0.5 rounded border-gray-600 bg-gray-800 text-emerald-500 focus:ring-emerald-500 focus:ring-offset-gray-900 cursor-pointer shrink-0" />
+        <span>
+          <span class="block text-sm font-bold ${state.weekendSprint.pastPaperDone ? 'text-emerald-400 line-through' : 'text-gray-100'}">Full Past Paper Practice</span>
+          <span class="block text-xs text-gray-500 mt-0.5">Complete a full timed past paper under exam conditions.</span>
+        </span>
+      </label>
+      <label class="flex items-start gap-3 rounded-xl bg-gray-900/50 border border-gray-800 p-4 ${weekend ? 'cursor-pointer' : 'cursor-not-allowed opacity-60'}">
+        <input type="checkbox" data-action="toggle-weekend" data-key="synthesisDone" ${state.weekendSprint.synthesisDone ? 'checked' : ''} ${weekend ? '' : 'disabled'}
+          class="h-4 w-4 mt-0.5 rounded border-gray-600 bg-gray-800 text-emerald-500 focus:ring-emerald-500 focus:ring-offset-gray-900 cursor-pointer shrink-0" />
+        <span>
+          <span class="block text-sm font-bold ${state.weekendSprint.synthesisDone ? 'text-emerald-400 line-through' : 'text-gray-100'}">Deep Syllabus Synthesis</span>
+          <span class="block text-xs text-gray-500 mt-0.5">Connect topics across units into one cohesive mental model.</span>
+        </span>
+      </label>
+    `;
+  }
+
+  /* ============================================================
+     RENDER: SYLLABUS CHECKLIST
+  ============================================================ */
+  function renderLeafRow(subject, topicName, leafName, indent) {
+    const leafState = state.syllabus[subject][topicName][leafName];
+    const badge = getRetentionBadge(leafState.lastRevised);
+    return `
+      <li class="flex items-center justify-between gap-2 rounded-lg border border-gray-800 bg-gray-900/40 hover:border-gray-700 transition px-2.5 py-2 ${indent ? 'ml-4' : ''}">
+        <label class="flex items-center gap-2 min-w-0 cursor-pointer flex-1">
+          <input type="checkbox" data-action="toggle-leaf" data-subject="${subject}" data-topic="${escapeHtml(topicName)}" data-leaf="${escapeHtml(leafName)}" ${leafState.done ? 'checked' : ''}
+            class="h-3.5 w-3.5 rounded border-gray-600 bg-gray-800 text-emerald-500 focus:ring-emerald-500 focus:ring-offset-gray-900 cursor-pointer shrink-0" />
+          <span class="truncate text-xs ${leafState.done ? 'line-through text-gray-500' : 'text-gray-200'}">${escapeHtml(leafName)}</span>
+          ${leafState.highPriority ? '<span title="High-Priority Spaced Repetition" class="shrink-0 text-amber-400 text-xs">★</span>' : ''}
+        </label>
+        <div class="flex items-center gap-1.5 shrink-0">
+          <span class="text-[9px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded-full ${badge.cls}" title="Last revised: ${daysAgoLabel(leafState.lastRevised)}">${badge.label}</span>
+          <button type="button" data-action="revise-leaf" data-subject="${subject}" data-topic="${escapeHtml(topicName)}" data-leaf="${escapeHtml(leafName)}"
+            title="Mark as revised now" class="text-gray-500 hover:text-brand-400 transition text-xs">🔄</button>
+        </div>
+      </li>
+    `;
+  }
+
+  function renderSyllabusSubjectCard(subjectKey) {
+    const subj = SYLLABUS[subjectKey];
+    let doneCount = 0, total = 0;
+    const rows = subj.topics.map(topic => {
+      const isFlat = topic.leaves.length === 1 && topic.leaves[0] === topic.name;
+      topic.leaves.forEach(leaf => {
+        total++;
+        if (state.syllabus[subjectKey][topic.name][leaf].done) doneCount++;
+      });
+      if (isFlat) {
+        return renderLeafRow(subjectKey, topic.name, topic.leaves[0], false);
+      }
+      const leafRows = topic.leaves.map(leaf => renderLeafRow(subjectKey, topic.name, leaf, true)).join('');
+      return `
+        <li>
+          <p class="text-[11px] font-bold uppercase tracking-wide text-gray-400 mb-1.5 mt-2">${escapeHtml(topic.name)}</p>
+          <ul class="space-y-1.5">${leafRows}</ul>
+        </li>
+      `;
+    }).join('');
+
+    return `
+      <div class="rounded-xl border border-gray-800 bg-gray-900/30 p-3.5">
+        <div class="flex items-center justify-between mb-3">
+          <h3 class="text-xs font-extrabold ${ACCENT_TEXT_CLASS[subj.accent]}">${subj.label}</h3>
+          <span class="text-[10px] font-mono text-gray-500">${doneCount}/${total}</span>
+        </div>
+        <ul class="space-y-1.5">${rows}</ul>
+      </div>
+    `;
+  }
+
+  function renderSyllabusSection() {
+    syllabusContainer.innerHTML = Object.keys(SYLLABUS).map(renderSyllabusSubjectCard).join('');
+  }
+
+  /* ============================================================
+     RENDER: COVERAGE MAP (radial rings)
+  ============================================================ */
+  function renderCoverageCard(subjectKey) {
+    const subj = SYLLABUS[subjectKey];
+    let doneCount = 0, total = 0;
+    subj.topics.forEach(topic => topic.leaves.forEach(leaf => {
+      total++;
+      if (state.syllabus[subjectKey][topic.name][leaf].done) doneCount++;
+    }));
+    const pct = total ? Math.round((doneCount / total) * 100) : 0;
+    const radius = 40;
+    const circumference = 2 * Math.PI * radius;
+    const offset = circumference - (pct / 100) * circumference;
+    const hex = ACCENT_HEX[subj.accent];
+
+    return `
+      <div class="rounded-xl border border-gray-800 bg-gray-900/30 p-4 flex items-center gap-4">
+        <div class="relative w-24 h-24 shrink-0">
+          <svg viewBox="0 0 100 100" class="w-24 h-24 -rotate-90">
+            <circle cx="50" cy="50" r="${radius}" fill="none" stroke="#27272a" stroke-width="10" />
+            <circle cx="50" cy="50" r="${radius}" fill="none" stroke="${hex}" stroke-width="10" stroke-linecap="round"
+              stroke-dasharray="${circumference}" stroke-dashoffset="${offset}" style="transition: stroke-dashoffset 0.5s ease" />
+          </svg>
+          <div class="absolute inset-0 flex items-center justify-center">
+            <span class="text-lg font-extrabold text-white">${pct}%</span>
+          </div>
+        </div>
+        <div class="min-w-0">
+          <p class="text-xs font-extrabold ${ACCENT_TEXT_CLASS[subj.accent]} mb-1">${subj.label}</p>
+          <p class="text-xs text-gray-400">${doneCount} / ${total} topics mastered</p>
+        </div>
+      </div>
+    `;
+  }
+
+  function renderCoverageMap() {
+    coverageContainer.innerHTML = Object.keys(SYLLABUS).map(renderCoverageCard).join('');
+  }
+
+  /* ============================================================
+     RENDER: CONFIDENCE MATRIX (sliders)
+  ============================================================ */
+  function renderConfidenceMatrix() {
+    confidenceContainer.innerHTML = Object.keys(SYLLABUS).map(subjectKey => {
+      const subj = SYLLABUS[subjectKey];
+      const value = state.confidence[subjectKey];
+      const hex = ACCENT_HEX[subj.accent];
+      return `
+        <div>
+          <div class="flex items-center justify-between mb-1.5">
+            <span class="text-xs font-semibold ${ACCENT_TEXT_CLASS[subj.accent]}">${subj.label}</span>
+            <span id="confValue-${subjectKey}" class="text-xs font-mono text-gray-400">${value} / 10</span>
+          </div>
+          <input type="range" min="1" max="10" value="${value}" data-action="set-confidence" data-subject="${subjectKey}"
+            style="color:${hex}" class="w-full" />
+        </div>
+      `;
+    }).join('');
+  }
+
+  /* ============================================================
+     RENDER: STATS
+  ============================================================ */
+  function computeHighPriorityCount() {
+    return ALL_LEAVES.filter(l => state.syllabus[l.subject][l.topicName][l.leafName].highPriority).length;
+  }
+  function computeCriticalDecayCount() {
+    return ALL_LEAVES.filter(l => {
+      const leaf = state.syllabus[l.subject][l.topicName][l.leafName];
+      if (!leaf.lastRevised) return false;
+      return (Date.now() - leaf.lastRevised) / 86400000 >= 7;
+    }).length;
+  }
+  function computeOverallMasteryPct() {
+    const doneCount = ALL_LEAVES.filter(l => state.syllabus[l.subject][l.topicName][l.leafName].done).length;
+    return TOTAL_LEAVES ? Math.round((doneCount / TOTAL_LEAVES) * 100) : 0;
+  }
+
+  function renderStats() {
+    el('statHighPriority').textContent = String(computeHighPriorityCount());
+    el('statCriticalDecay').textContent = String(computeCriticalDecayCount());
+    const hwTotal = state.homework.length;
+    const hwDone = state.homework.filter(t => t.done).length;
+    el('statHwPct').textContent = `${hwTotal ? Math.round((hwDone / hwTotal) * 100) : 0}%`;
+    el('statOverallMastery').textContent = `${computeOverallMasteryPct()}%`;
+    el('pomodoroCount').textContent = String(state.pomodorosCompleted);
+  }
+
+  /* ============================================================
+     RENDER ALL
+  ============================================================ */
+  function renderAll() {
+    renderHeader();
+    renderMentorBanner();
+    renderTimetable();
+    renderHomework();
+    renderAfterSchoolZone();
+    renderWeekendZone();
+    renderSyllabusSection();
+    renderCoverageMap();
+    renderConfidenceMatrix();
+    renderStats();
+  }
+
+  /* ============================================================
+     MUTATIONS: HOMEWORK
+  ============================================================ */
+  function addHomework(text) {
+    const trimmed = text.trim();
+    if (!trimmed) return;
+    state.homework.push({ id: uid(), text: trimmed, done: false });
+    saveState();
+    renderHomework();
+    renderStats();
+  }
+
+  function toggleHomework(id, done) {
+    const item = state.homework.find(t => t.id === id);
+    if (!item) return;
+    item.done = done;
+    saveState();
+    renderHomework();
+    renderStats();
+  }
+
+  function deleteHomework(id) {
+    state.homework = state.homework.filter(t => t.id !== id);
+    saveState();
+    renderHomework();
+    renderStats();
+  }
+
+  function fastTrackNextHomework() {
+    const next = state.homework.find(t => !t.done);
+    if (!next) {
+      alert('No pending homework — you are fully cleared! 🎉');
+      return;
+    }
+    next.done = true;
+    saveState();
+    renderHomework();
+    renderStats();
+  }
+
+  /* ============================================================
+     MUTATIONS: SYLLABUS
+  ============================================================ */
+  function toggleLeafDone(subject, topic, leaf, done) {
+    state.syllabus[subject][topic][leaf].done = done;
+    saveState();
+    renderSyllabusSection();
+    renderCoverageMap();
+    renderStats();
+  }
+
+  function reviseLeaf(subject, topic, leaf) {
+    state.syllabus[subject][topic][leaf].lastRevised = Date.now();
+    saveState();
+    renderSyllabusSection();
+    renderStats();
+  }
+
+  /* ============================================================
+     MUTATIONS: TIMETABLE / AFTER SCHOOL / WEEKEND
+  ============================================================ */
+  function toggleFreePeriod(day, done) {
+    state.freePeriodUsage[day] = done;
+    saveState();
+    renderTimetable();
+  }
+
+  function markBlurtingComplete() {
+    if (state.afterSchool.blurtingLastDone === todayDateString()) return;
+    state.afterSchool.blurtingLastDone = todayDateString();
+    state.afterSchool.blurtingCount += 1;
+    saveState();
+    renderAfterSchoolZone();
+  }
+
+  function markWeakSpotComplete() {
+    if (state.afterSchool.weakSpotLastDone === todayDateString()) return;
+    state.afterSchool.weakSpotLastDone = todayDateString();
+    state.afterSchool.weakSpotCount += 1;
+    ALL_LEAVES.forEach(l => {
+      const leafState = state.syllabus[l.subject][l.topicName][l.leafName];
+      if (leafState.highPriority) leafState.lastRevised = Date.now();
+    });
+    saveState();
+    renderAfterSchoolZone();
+    renderSyllabusSection();
+    renderStats();
+  }
+
+  function toggleWeekendItem(key, done) {
+    state.weekendSprint[key] = done;
+    saveState();
+    renderWeekendZone();
+  }
+
+  function setConfidence(subject, value) {
+    state.confidence[subject] = value;
+    saveState();
+    el(`confValue-${subject}`).textContent = `${value} / 10`;
+  }
+
+  /* ============================================================
+     EVENT DELEGATION
+  ============================================================ */
+  homeworkList.addEventListener('click', (e) => {
+    const del = e.target.closest('[data-action="delete-homework"]');
+    if (del) { deleteHomework(del.dataset.id); return; }
+    const cb = e.target.closest('input[data-action="toggle-homework"]');
+    if (cb) toggleHomework(cb.dataset.id, cb.checked);
+  });
+
+  timetableList.addEventListener('click', (e) => {
+    const cb = e.target.closest('input[data-action="toggle-freeperiod"]');
+    if (cb) toggleFreePeriod(cb.dataset.day, cb.checked);
+  });
+
+  syllabusContainer.addEventListener('click', (e) => {
+    const revise = e.target.closest('[data-action="revise-leaf"]');
+    if (revise) { reviseLeaf(revise.dataset.subject, revise.dataset.topic, revise.dataset.leaf); return; }
+    const cb = e.target.closest('input[data-action="toggle-leaf"]');
+    if (cb) toggleLeafDone(cb.dataset.subject, cb.dataset.topic, cb.dataset.leaf, cb.checked);
+  });
+
+  weekendContent.addEventListener('click', (e) => {
+    const cb = e.target.closest('input[data-action="toggle-weekend"]');
+    if (cb) toggleWeekendItem(cb.dataset.key, cb.checked);
+  });
+
+  confidenceContainer.addEventListener('input', (e) => {
+    const slider = e.target.closest('input[data-action="set-confidence"]');
+    if (slider) setConfidence(slider.dataset.subject, parseInt(slider.value, 10));
+  });
+
+  el('btnAddHomework').addEventListener('click', () => {
+    addHomework(homeworkInput.value);
+    homeworkInput.value = '';
+    homeworkInput.focus();
+  });
+  homeworkInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') { addHomework(homeworkInput.value); homeworkInput.value = ''; }
+  });
+
+  el('btnFastTrack').addEventListener('click', fastTrackNextHomework);
+
+  /* ============================================================
+     HOMEWORK FILE UPLOAD (Teams / Outlook export bridge)
+  ============================================================ */
+  function parseHomeworkFileText(rawText, filename) {
+    const isCsv = /\.(csv|tsv)$/i.test(filename);
+    const lines = rawText.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
+    if (!lines.length) return [];
+
+    if (!isCsv) {
+      return lines;
+    }
+
+    const delimiter = filename.toLowerCase().endsWith('.tsv') ? '\t' : ',';
+    const headerLooksLikeHeader = /subject|task|assignment|title|description|due/i.test(lines[0]) && !/\d/.test(lines[0]);
+    const dataLines = headerLooksLikeHeader ? lines.slice(1) : lines;
+    return dataLines
+      .map(line => line.split(delimiter).map(cell => cell.trim().replace(/^"|"$/g, '')).filter(Boolean).join(' — '))
+      .filter(Boolean);
+  }
+
+  el('btnUploadHomework').addEventListener('click', () => {
+    el('homeworkFileInput').click();
+  });
+
+  el('homeworkFileInput').addEventListener('change', (e) => {
+    const file = e.target.files && e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      const lines = parseHomeworkFileText(String(reader.result || ''), file.name);
+      if (!lines.length) {
+        alert('No assignments could be read from that file. Make sure it has one assignment per line (or per row for CSV).');
+      } else {
+        lines.forEach(line => state.homework.push({ id: uid(), text: line, done: false }));
+        saveState();
+        renderHomework();
+        renderStats();
+        alert(`Imported ${lines.length} assignment${lines.length === 1 ? '' : 's'} from "${file.name}".`);
+      }
+      e.target.value = '';
+    };
+    reader.onerror = () => {
+      alert('Could not read that file. Please try again or use "Reset Week" to paste the text instead.');
+      e.target.value = '';
+    };
+    reader.readAsText(file);
+  });
+  el('btnBlurting').addEventListener('click', markBlurtingComplete);
+  el('btnWeakSpot').addEventListener('click', markWeakSpotComplete);
+
+  /* ============================================================
+     WEEKLY STRATEGY BRIEFING MODAL
+  ============================================================ */
+  const onboardingModal = el('onboardingModal');
+  const onboardingForm = el('onboardingForm');
+  const onboardingTopicsContainer = el('onboardingTopicsContainer');
+  const homeworkRawInput = el('homeworkRawInput');
+  const anxietyBiology = el('anxietyBiology');
+  const anxietyMaths = el('anxietyMaths');
+  const anxietyEconomics = el('anxietyEconomics');
+
+  function renderOnboardingTopics() {
+    onboardingTopicsContainer.innerHTML = Object.keys(SYLLABUS).map(subjectKey => {
+      const subj = SYLLABUS[subjectKey];
+      const topicsHtml = subj.topics.map(topic => {
+        const isFlat = topic.leaves.length === 1 && topic.leaves[0] === topic.name;
+        if (isFlat) {
+          return `
+            <label class="flex items-center gap-2 py-1 cursor-pointer">
+              <input type="checkbox" data-subject="${subjectKey}" data-topic="${escapeHtml(topic.name)}" data-leaf="${escapeHtml(topic.leaves[0])}"
+                class="h-3.5 w-3.5 rounded border-gray-600 bg-gray-800 text-brand-500 focus:ring-brand-500 focus:ring-offset-gray-900 cursor-pointer" />
+              <span class="text-xs text-gray-200">${escapeHtml(topic.name)}</span>
+            </label>
+          `;
+        }
+        const leaves = topic.leaves.map(leaf => `
+          <label class="flex items-center gap-2 py-1 ml-4 cursor-pointer">
+            <input type="checkbox" data-subject="${subjectKey}" data-topic="${escapeHtml(topic.name)}" data-leaf="${escapeHtml(leaf)}"
+              class="h-3.5 w-3.5 rounded border-gray-600 bg-gray-800 text-brand-500 focus:ring-brand-500 focus:ring-offset-gray-900 cursor-pointer" />
+            <span class="text-xs text-gray-200">${escapeHtml(leaf)}</span>
+          </label>
+        `).join('');
+        return `<p class="text-[11px] font-bold uppercase tracking-wide text-gray-500 mt-2">${escapeHtml(topic.name)}</p>${leaves}`;
+      }).join('');
+      return `
+        <div>
+          <p class="text-xs font-extrabold ${ACCENT_TEXT_CLASS[subj.accent]} mb-1">${subj.label}</p>
+          ${topicsHtml}
+        </div>
+      `;
+    }).join('');
+  }
+
+  function wireAnxietySlider(inputEl, valueElId) {
+    inputEl.addEventListener('input', () => { el(valueElId).textContent = `${inputEl.value} / 10`; });
+  }
+  wireAnxietySlider(anxietyBiology, 'anxietyBiologyValue');
+  wireAnxietySlider(anxietyMaths, 'anxietyMathsValue');
+  wireAnxietySlider(anxietyEconomics, 'anxietyEconomicsValue');
+
+  function openOnboarding() {
+    renderOnboardingTopics();
+    homeworkRawInput.value = '';
+    anxietyBiology.value = state.anxiety.biology;
+    anxietyMaths.value = state.anxiety.maths;
+    anxietyEconomics.value = state.anxiety.economics;
+    el('anxietyBiologyValue').textContent = `${state.anxiety.biology} / 10`;
+    el('anxietyMathsValue').textContent = `${state.anxiety.maths} / 10`;
+    el('anxietyEconomicsValue').textContent = `${state.anxiety.economics} / 10`;
+    onboardingModal.classList.remove('hidden');
+    onboardingModal.classList.add('flex');
+  }
+
+  function closeOnboarding() {
+    onboardingModal.classList.add('hidden');
+    onboardingModal.classList.remove('flex');
+  }
+
+  function buildMentorStrategy() {
+    const subjects = Object.keys(SUBJECT_LABELS);
+    let riskiest = subjects[0];
+    subjects.forEach(s => { if (state.anxiety[s] > state.anxiety[riskiest]) riskiest = s; });
+    const riskLevel = state.anxiety[riskiest];
+
+    const newTopicsForRiskiest = ALL_LEAVES
+      .filter(l => l.subject === riskiest && state.syllabus[l.subject][l.topicName][l.leafName].highPriority)
+      .map(l => l.leafName);
+
+    const criticalDecay = computeCriticalDecayCount();
+    const totalHighPriority = computeHighPriorityCount();
+    const firstFreeBlock = TIMETABLE[0];
+
+    let text = `${SUBJECT_LABELS[riskiest]} is flagged HIGH RISK this week (anxiety ${riskLevel}/10)`;
+    text += newTopicsForRiskiest.length
+      ? ` due to ${newTopicsForRiskiest.length} newly targeted topic${newTopicsForRiskiest.length > 1 ? 's' : ''}: ${newTopicsForRiskiest.join(', ')}.`
+      : '.';
+    text += ` Your ${firstFreeBlock.day} ${firstFreeBlock.period} free period is now locked exclusively for ${SUBJECT_LABELS[riskiest]} homework clearance.`;
+    text += ` You've logged ${state.homework.length} homework task${state.homework.length === 1 ? '' : 's'} and ${totalHighPriority} topic${totalHighPriority === 1 ? '' : 's'} under active Spaced Repetition this week.`;
+    if (criticalDecay > 0) {
+      text += ` ⚠️ ${criticalDecay} topic${criticalDecay === 1 ? '' : 's'} ${criticalDecay === 1 ? 'has' : 'have'} entered Critical Decay (7+ days unrevised) — prioritise ${criticalDecay === 1 ? 'it' : 'them'} during your Weekend Sprint.`;
+    }
+    return text;
+  }
+
+  function startNewWeek(selectedLeaves, homeworkRawText, anxietyValues) {
+    ALL_LEAVES.forEach(l => { state.syllabus[l.subject][l.topicName][l.leafName].highPriority = false; });
+    selectedLeaves.forEach(sel => {
+      state.syllabus[sel.subject][sel.topic][sel.leaf].highPriority = true;
+    });
+
+    const lines = homeworkRawText.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
+    state.homework = lines.map(line => ({ id: uid(), text: line, done: false }));
+
+    state.anxiety = anxietyValues;
+    state.freePeriodUsage = { monday: false, tuesday: false, wednesday: false, thursday: false, friday: false };
+    state.weekendSprint = { pastPaperDone: false, synthesisDone: false };
+    state.weekStartDate = getWeekSaturday(new Date()).toISOString();
+    state.onboarded = true;
+    state.mentorStrategyText = buildMentorStrategy();
+
+    saveState();
+    renderAll();
+    closeOnboarding();
+  }
+
+  onboardingForm.addEventListener('submit', (e) => {
+    e.preventDefault();
+    const checked = Array.from(onboardingTopicsContainer.querySelectorAll('input[type="checkbox"]:checked'));
+    const selectedLeaves = checked.map(cb => ({ subject: cb.dataset.subject, topic: cb.dataset.topic, leaf: cb.dataset.leaf }));
+    const anxietyValues = {
+      biology: parseInt(anxietyBiology.value, 10),
+      maths: parseInt(anxietyMaths.value, 10),
+      economics: parseInt(anxietyEconomics.value, 10),
+    };
+    startNewWeek(selectedLeaves, homeworkRawInput.value, anxietyValues);
+  });
+
+  el('btnCloseOnboarding').addEventListener('click', closeOnboarding);
+  el('btnSkipOnboarding').addEventListener('click', closeOnboarding);
+  el('btnResetWeek').addEventListener('click', openOnboarding);
+
+  /* ============================================================
+     AUTO-PROMPT LOGIC
+  ============================================================ */
+  function shouldAutoPrompt() {
+    const today = new Date();
+    if (today.getDay() !== 6) return false;
+    if (!state.weekStartDate) return true;
+    const currentSat = getWeekSaturday(today).toDateString();
+    const storedSat = new Date(state.weekStartDate).toDateString();
+    return currentSat !== storedSat;
+  }
+
+  /* ============================================================
+     POMODORO WORKSPACE
+  ============================================================ */
+  let pomodoroSeconds = POMODORO_SECONDS;
+  let pomodoroInterval = null;
+  let pomodoroRunning = false;
+
+  const pomodoroDisplay = el('pomodoroDisplay');
+  const pomodoroStatus = el('pomodoroStatus');
+  const pomoMiniText = el('pomoMiniText');
+  const pomoMiniBadge = el('pomoMiniBadge');
+  const pomoMiniDot = el('pomoMiniDot');
+
+  function formatClock(totalSeconds) {
+    const m = String(Math.floor(totalSeconds / 60)).padStart(2, '0');
+    const s = String(totalSeconds % 60).padStart(2, '0');
+    return `${m}:${s}`;
+  }
+
+  function updatePomodoroDisplay() {
+    const clock = formatClock(pomodoroSeconds);
+    pomodoroDisplay.textContent = clock;
+    pomoMiniText.textContent = clock;
+    pomoMiniBadge.classList.toggle('hidden', !pomodoroRunning && pomodoroSeconds === POMODORO_SECONDS);
+    pomoMiniDot.classList.toggle('animate-pulse', pomodoroRunning);
+    pomoMiniDot.classList.toggle('bg-emerald-500', pomodoroRunning);
+    pomoMiniDot.classList.toggle('bg-gray-600', !pomodoroRunning);
+  }
+
+  function playBeepSequence() {
+    try {
+      const AudioCtx = window.AudioContext || window.webkitAudioContext;
+      const ctx = new AudioCtx();
+      const freqs = [660, 880, 1046.5];
+      freqs.forEach((freq, i) => {
+        const start = ctx.currentTime + i * 0.22;
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = 'sine';
+        osc.frequency.value = freq;
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        gain.gain.setValueAtTime(0.0001, start);
+        gain.gain.exponentialRampToValueAtTime(0.28, start + 0.02);
+        gain.gain.exponentialRampToValueAtTime(0.0001, start + 0.2);
+        osc.start(start);
+        osc.stop(start + 0.22);
+      });
+    } catch (err) {
+      console.error('Web Audio playback failed:', err);
+    }
+  }
+
+  function notifyPomodoroDone() {
+    const body = 'Great focus session! Time for a short break.';
+    if ('Notification' in window) {
+      if (Notification.permission === 'granted') {
+        new Notification('🍅 Pomodoro Complete', { body });
+        return;
+      }
+      if (Notification.permission !== 'denied') {
+        Notification.requestPermission().then((perm) => {
+          if (perm === 'granted') new Notification('🍅 Pomodoro Complete', { body });
+          else alert('Pomodoro Complete! ' + body);
+        });
+        return;
+      }
+    }
+    alert('Pomodoro Complete! ' + body);
+  }
+
+  function completePomodoro() {
+    clearInterval(pomodoroInterval);
+    pomodoroRunning = false;
+    pomodoroStatus.textContent = 'Session complete!';
+    playBeepSequence();
+    notifyPomodoroDone();
+    state.pomodorosCompleted += 1;
+    saveState();
+    renderStats();
+    pomodoroSeconds = POMODORO_SECONDS;
+    updatePomodoroDisplay();
+    setTimeout(() => { pomodoroStatus.textContent = 'Ready to focus'; }, 3000);
+  }
+
+  function startPomodoro() {
+    if (pomodoroRunning) return;
+    pomodoroRunning = true;
+    pomodoroStatus.textContent = 'Focusing…';
+    updatePomodoroDisplay();
+    pomodoroInterval = setInterval(() => {
+      pomodoroSeconds -= 1;
+      updatePomodoroDisplay();
+      if (pomodoroSeconds <= 0) completePomodoro();
+    }, 1000);
+  }
+
+  function pausePomodoro() {
+    if (!pomodoroRunning) return;
+    pomodoroRunning = false;
+    clearInterval(pomodoroInterval);
+    pomodoroStatus.textContent = 'Paused';
+    updatePomodoroDisplay();
+  }
+
+  function resetPomodoro() {
+    pausePomodoro();
+    pomodoroSeconds = POMODORO_SECONDS;
+    pomodoroStatus.textContent = 'Ready to focus';
+    updatePomodoroDisplay();
+  }
+
+  el('btnPomStart').addEventListener('click', startPomodoro);
+  el('btnPomPause').addEventListener('click', pausePomodoro);
+  el('btnPomReset').addEventListener('click', resetPomodoro);
+
+  /* ============================================================
+     INIT
+  ============================================================ */
+  document.addEventListener('DOMContentLoaded', () => {
+    if ('Notification' in window && Notification.permission === 'default') {
+      Notification.requestPermission().catch(() => {});
+    }
+  });
+
+  renderAll();
+  updatePomodoroDisplay();
+
+  if (!state.onboarded || shouldAutoPrompt()) {
+    openOnboarding();
+  }
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Weekend Sprint — The A* Mentor</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🧠</text></svg>" />
+<script>
+  (function () { try { var t = localStorage.getItem('a_star_theme'); if (t === 'light' || t === 'dark') document.documentElement.setAttribute('data-theme', t); } catch (e) {} })();
+</script>
+<link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+<div class="app-shell">
+  <div id="sidebarMount"></div>
+  <main class="main-col">
+    <div class="main-inner" style="max-width:760px;">
+
+      <div class="page-header">
+        <div class="page-eyebrow">🔋 Weekend Sprint Zone</div>
+        <h1 class="page-title">Extended Deep-Work Sessions</h1>
+        <p class="page-sub" id="weekendSubtitle">Only active on Saturdays and Sundays.</p>
+      </div>
+
+      <div id="weekendContent" class="grid grid-2"></div>
+      <div id="weekendLockNotice" class="card card-pad fade-in" style="display:none;text-align:center;margin-top:10px;">
+        <p style="font-size:14px;font-weight:700;margin:0;">🔒 Unlocks automatically on Saturday &amp; Sunday</p>
+      </div>
+
+      <footer class="site-foot">The A* Mentor — your study data stays in your browser's local storage.</footer>
+    </div>
+  </main>
+</div>
+
+<script src="mentor-shared.js"></script>
+<script src="nav.js"></script>
+<script>
+(function () {
+  'use strict';
+  const M = window.MentorShared;
+  let state = M.loadState();
+
+  function render() {
+    const weekend = M.isWeekend();
+    document.getElementById('weekendSubtitle').textContent = weekend ? 'Active now — make it count.' : 'Only active on Saturdays and Sundays.';
+    document.getElementById('weekendLockNotice').style.display = weekend ? 'none' : 'block';
+    document.getElementById('weekendContent').style.display = weekend ? 'grid' : 'none';
+
+    document.getElementById('weekendContent').innerHTML = `
+      <label class="card card-pad fade-in" style="cursor:pointer;display:flex;gap:12px;align-items:flex-start;">
+        <input type="checkbox" data-key="pastPaperDone" ${state.weekendSprint.pastPaperDone ? 'checked' : ''} />
+        <span>
+          <span style="display:block;font-size:14px;font-weight:800;${state.weekendSprint.pastPaperDone ? 'color:var(--ok);text-decoration:line-through;' : ''}">Full Past Paper Practice</span>
+          <span style="display:block;font-size:12.5px;color:var(--ink3);margin-top:4px;">Complete a full timed past paper under exam conditions.</span>
+        </span>
+      </label>
+      <label class="card card-pad fade-in" style="cursor:pointer;display:flex;gap:12px;align-items:flex-start;">
+        <input type="checkbox" data-key="synthesisDone" ${state.weekendSprint.synthesisDone ? 'checked' : ''} />
+        <span>
+          <span style="display:block;font-size:14px;font-weight:800;${state.weekendSprint.synthesisDone ? 'color:var(--ok);text-decoration:line-through;' : ''}">Deep Syllabus Synthesis</span>
+          <span style="display:block;font-size:12.5px;color:var(--ink3);margin-top:4px;">Connect topics across units into one cohesive mental model.</span>
+        </span>
+      </label>
+    `;
+  }
+
+  document.getElementById('weekendContent').addEventListener('click', (e) => {
+    const cb = e.target.closest('input[type="checkbox"]');
+    if (cb) { state.weekendSprint[cb.dataset.key] = cb.checked; M.saveState(state); render(); }
+  });
+
+  render();
+})();
+</script>
+</body>
+</html>

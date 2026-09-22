@@ -1,0 +1,614 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>AI Tutor — The A* Mentor Dashboard</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🎓</text></svg>" />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+  tailwind.config = {
+    darkMode: 'class',
+    theme: {
+      extend: {
+        fontFamily: {
+          sans: ['Inter', 'ui-sans-serif', 'system-ui', 'sans-serif'],
+          mono: ['"JetBrains Mono"', 'ui-monospace', 'monospace'],
+        },
+        colors: {
+          brand: {
+            50: '#eef2ff', 100: '#e0e7ff', 200: '#c7d2fe', 300: '#a5b4fc',
+            400: '#818cf8', 500: '#6366f1', 600: '#4f46e5', 700: '#4338ca',
+            800: '#3730a3', 900: '#312e81',
+          },
+        },
+        boxShadow: {
+          glow: '0 0 0 1px rgba(99,102,241,0.15), 0 8px 30px -4px rgba(99,102,241,0.25)',
+        },
+      },
+    },
+  };
+</script>
+<style>
+  html { color-scheme: dark; }
+  body { background-color: #05050a; }
+  ::-webkit-scrollbar { width: 8px; height: 8px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: #27272a; border-radius: 9999px; }
+  ::-webkit-scrollbar-thumb:hover { background: #3f3f46; }
+  .card {
+    background: linear-gradient(180deg, rgba(24,24,27,0.75) 0%, rgba(15,15,17,0.75) 100%);
+    border: 1px solid rgba(63,63,70,0.6);
+    backdrop-filter: blur(6px);
+  }
+  .bg-grid { background-image: radial-gradient(circle at 1px 1px, rgba(99,102,241,0.15) 1px, transparent 0); background-size: 28px 28px; }
+  .fade-in { animation: fadeIn 0.18s ease-out; }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
+  .msg-bubble { max-width: 82%; white-space: pre-wrap; word-wrap: break-word; line-height: 1.5; }
+  .typing-dot { animation: typingBounce 1.1s infinite ease-in-out; }
+  .typing-dot:nth-child(2) { animation-delay: 0.15s; }
+  .typing-dot:nth-child(3) { animation-delay: 0.3s; }
+  @keyframes typingBounce { 0%, 60%, 100% { transform: translateY(0); opacity: 0.4; } 30% { transform: translateY(-4px); opacity: 1; } }
+</style>
+</head>
+<body class="min-h-screen bg-[#05050a] text-gray-100 bg-grid">
+
+<div class="min-h-screen w-full flex flex-col">
+
+  <header class="sticky top-0 z-30 border-b border-gray-800/80 bg-[#05050a]/90 backdrop-blur">
+    <div class="mx-auto max-w-[1100px] px-4 sm:px-6 py-4 flex items-center justify-between gap-3">
+      <div class="flex items-center gap-3">
+        <div class="h-10 w-10 rounded-xl bg-gradient-to-br from-brand-500 to-indigo-700 flex items-center justify-center shadow-glow shrink-0">
+          <span class="text-lg">🎓</span>
+        </div>
+        <div>
+          <h1 class="text-lg sm:text-xl font-extrabold tracking-tight text-white leading-tight">AI Tutor</h1>
+          <p class="text-xs sm:text-sm text-gray-400 font-medium">Reads &amp; updates your live Mentor Dashboard state</p>
+        </div>
+      </div>
+      <a href="index.html" class="inline-flex items-center gap-2 rounded-lg border border-gray-700 hover:bg-gray-800 transition px-4 py-2 text-sm font-semibold text-gray-300">
+        ← Dashboard
+      </a>
+    </div>
+  </header>
+
+  <main class="mx-auto max-w-[1100px] w-full px-4 sm:px-6 py-6 flex-1 flex flex-col gap-4 min-h-0">
+
+    <!-- Suggested prompts -->
+    <div id="suggestionRow" class="flex flex-wrap gap-2"></div>
+
+    <!-- Chat window -->
+    <section class="card rounded-2xl flex-1 flex flex-col min-h-[50vh] overflow-hidden">
+      <div id="chatWindow" class="flex-1 overflow-y-auto p-4 sm:p-6 space-y-4"></div>
+
+      <form id="chatForm" class="border-t border-gray-800 p-3 sm:p-4 flex items-center gap-2">
+        <input id="chatInput" type="text" autocomplete="off" placeholder="Ask about a topic, say 'quiz me', or 'what should I study now?'…"
+          class="flex-1 min-w-0 rounded-lg bg-gray-900 border border-gray-800 focus:border-brand-500 focus:ring-1 focus:ring-brand-500 outline-none px-3 py-2.5 text-sm text-gray-100 placeholder-gray-600" />
+        <button type="submit" class="shrink-0 rounded-lg bg-brand-600 hover:bg-brand-500 transition px-4 py-2.5 text-sm font-bold text-white">Send</button>
+      </form>
+    </section>
+
+    <!-- Advanced: real AI connector -->
+    <section class="card rounded-2xl p-4">
+      <button id="btnToggleAdvanced" type="button" class="w-full flex items-center justify-between text-left">
+        <span class="text-xs font-bold uppercase tracking-wider text-gray-400">⚙️ Advanced: Connect a Real AI Model (optional)</span>
+        <span id="advancedChevron" class="text-gray-500 text-xs">▼</span>
+      </button>
+      <div id="advancedPanel" class="hidden mt-4 space-y-3 text-xs text-gray-400 leading-relaxed">
+        <p>By default this tutor runs entirely offline using a built-in knowledge base — no setup, no API key, no cost. Claude's API is designed to be called from a server, not directly from a browser, so this page can't reach it on its own.</p>
+        <p>To get real Claude-powered answers instead of the local engine, run the tiny local proxy included next to this file:</p>
+        <ol class="list-decimal list-inside space-y-1">
+          <li>Get an API key at <span class="text-gray-300 font-mono">console.anthropic.com</span> (this uses your own paid account).</li>
+          <li>In a terminal, in this folder, set the key and start the proxy — it never leaves your computer:</li>
+        </ol>
+        <pre class="rounded-lg bg-gray-950 border border-gray-800 p-3 font-mono text-[11px] text-emerald-300 overflow-x-auto">set ANTHROPIC_API_KEY=sk-ant-your-key-here
+node ai-proxy-server.js</pre>
+        <p>Then tick the box below. Every message will try your local proxy first and automatically fall back to the offline engine if it isn't running.</p>
+        <label class="flex items-center gap-2 pt-1">
+          <input id="useRealAi" type="checkbox" class="h-4 w-4 rounded border-gray-600 bg-gray-800 text-brand-500 focus:ring-brand-500 focus:ring-offset-gray-900 cursor-pointer" />
+          <span class="text-gray-300 font-semibold">Use my local Claude proxy when available</span>
+        </label>
+        <div class="flex items-center gap-2">
+          <span class="text-gray-500 shrink-0">Proxy URL:</span>
+          <input id="proxyUrlInput" type="text" value="http://localhost:8787/chat" class="flex-1 rounded-lg bg-gray-900 border border-gray-800 focus:border-brand-500 outline-none px-2.5 py-1.5 font-mono text-[11px] text-gray-200" />
+        </div>
+        <p id="proxyStatus" class="font-mono text-[11px] text-gray-600">Proxy status: not checked yet.</p>
+      </div>
+    </section>
+
+    <footer class="text-center text-[11px] text-gray-600 pb-4">
+      All chat history and study data stays in your browser's local storage — nothing is uploaded anywhere unless you explicitly enable the local proxy above.
+    </footer>
+  </main>
+</div>
+
+<script src="mentor-shared.js"></script>
+<script>
+(function () {
+  'use strict';
+
+  const M = window.MentorShared;
+  const CHAT_STORAGE_KEY = 'a_star_tutor_chat_v1';
+
+  /* ============================================================
+     KNOWLEDGE BASE — accurate explanations + self-test per topic
+  ============================================================ */
+  const KNOWLEDGE = [
+    { subject: 'biology', topic: 'Photosynthesis', leaf: 'Light-dependent reactions',
+      explain: "Occur in the thylakoid membranes. Light excites electrons in chlorophyll (photoactivation); they pass along an electron transport chain, driving photophosphorylation (ATP synthesis) and photolysis of water (splitting H₂O into protons, electrons and O₂ — the oxygen you exhale). NADP+ is reduced to NADPH. ATP and NADPH pass to the light-independent stage. Exam trap: the O₂ by-product comes from photolysis here, not the Calvin cycle.",
+      question: "What three things does the light-dependent stage pass on to the light-independent stage, and where does the oxygen by-product actually come from?",
+      keywords: ['atp', 'nadph', 'photolysis', 'oxygen'] },
+    { subject: 'biology', topic: 'Photosynthesis', leaf: 'Light-independent reactions',
+      explain: "Takes place in the stroma (the Calvin cycle). CO₂ is fixed by combining with RuBP (5C), catalysed by rubisco, forming an unstable 6C compound that splits into two GP (3C) molecules. GP is reduced to triose phosphate (TP) using ATP and NADPH from the light-dependent stage. Some TP regenerates RuBP (using more ATP); the rest forms glucose. Exam trap: rubisco fixes CO₂ — it doesn't directly make glucose.",
+      question: "Put these in order: GP, RuBP, triose phosphate, CO₂ fixation — and name the enzyme that fixes CO₂.",
+      keywords: ['rubp', 'gp', 'triose phosphate', 'rubisco'] },
+    { subject: 'biology', topic: 'Photosynthesis', leaf: 'Limiting factors',
+      explain: "Blackman's Law of Limiting Factors: the rate of photosynthesis is restricted by whichever factor is in shortest supply, and increasing that factor raises the rate until another becomes limiting. The three key factors are light intensity, CO₂ concentration, and temperature. On a graph, a plateau shows a different factor has taken over. Exam questions often ask which factor is limiting at a specific point on a graph.",
+      question: "Name the three main limiting factors of photosynthesis, and explain what a plateau on a rate-vs-light-intensity graph tells you.",
+      keywords: ['light intensity', 'carbon dioxide', 'temperature', 'plateau'] },
+    { subject: 'biology', topic: 'Respiration', leaf: 'Glycolysis',
+      explain: "Occurs in the cytoplasm, no oxygen needed. Glucose (6C) is phosphorylated (using 2 ATP), then split into two triose phosphate molecules, oxidised to pyruvate (3C each) — a NET gain of 2 ATP and 2 reduced NAD (NADH) per glucose. Pyruvate is then transported into the mitochondrial matrix for the link reaction if oxygen is available. Exam trap: the net ATP yield is 2, not 4 — you must subtract the 2 ATP invested up front.",
+      question: "Why is the net ATP yield from glycolysis only 2, when 4 ATP are actually produced?",
+      keywords: ['net 2 atp', 'pyruvate', 'nadh', 'cytoplasm'] },
+    { subject: 'biology', topic: 'Respiration', leaf: 'Link reaction',
+      explain: "Occurs in the mitochondrial matrix. Pyruvate (3C) is decarboxylated (loses CO₂) and dehydrogenated (loses H, reducing NAD to NADH); the remaining 2C acetyl group combines with coenzyme A to form acetyl coenzyme A. This happens twice per glucose (once per pyruvate). No ATP is produced directly here — acetyl CoA then enters the Krebs cycle.",
+      question: "What two things happen to pyruvate in the link reaction, and what molecule does it become?",
+      keywords: ['acetyl coenzyme a', 'decarboxylation', 'nadh'] },
+    { subject: 'biology', topic: 'Respiration', leaf: 'Krebs cycle',
+      explain: "Occurs in the mitochondrial matrix. Acetyl CoA (2C) combines with oxaloacetate (4C) to form citrate (6C). Through a cycle of reactions, citrate is progressively decarboxylated and dehydrogenated back to oxaloacetate, releasing 2 CO₂ and producing 1 ATP, 3 NADH and 1 FADH₂ per acetyl CoA (so double per glucose, since two acetyl CoA enter). The reduced coenzymes carry hydrogens to the electron transport chain.",
+      question: "Per glucose molecule (i.e. two turns of the cycle), how many CO₂, ATP, NADH and FADH₂ does the Krebs cycle produce?",
+      keywords: ['oxaloacetate', 'citrate', 'nadh', 'fadh2'] },
+    { subject: 'biology', topic: 'Respiration', leaf: 'Oxidative phosphorylation',
+      explain: "Occurs across the inner mitochondrial membrane (cristae). NADH and FADH₂ donate electrons to the electron transport chain; as electrons pass along carrier proteins, energy released pumps protons into the intermembrane space, creating a proton gradient (chemiosmosis). Protons diffuse back through ATP synthase, driving ATP synthesis. Oxygen is the final electron acceptor, combining with electrons and protons to form water — this stage yields the majority of ATP.",
+      question: "What is chemiosmosis, and why is oxygen essential for this stage of respiration?",
+      keywords: ['chemiosmosis', 'proton gradient', 'atp synthase', 'oxygen'] },
+    { subject: 'biology', topic: 'Respiration', leaf: 'Anaerobic respiration',
+      explain: "Occurs when oxygen is unavailable. In animals, pyruvate is reduced directly to lactate using NADH (regenerating NAD+ so glycolysis can continue) — no further ATP is made beyond glycolysis's net 2. In yeast/plants, pyruvate is decarboxylated to ethanal then reduced to ethanol, also regenerating NAD+. Exam trap: anaerobic respiration doesn't yield extra ATP — its purpose is regenerating NAD+.",
+      question: "What is the actual PURPOSE of converting pyruvate to lactate or ethanol, if it doesn't produce more ATP?",
+      keywords: ['regenerate', 'nad+', 'lactate', 'ethanol'] },
+    { subject: 'maths', topic: 'Functions', leaf: 'Domain & Range',
+      explain: "The domain is the set of all valid input (x) values; the range is the set of all possible output (y) values. Domain restrictions commonly come from division by zero (denominator ≠ 0), square roots (expression under the root ≥ 0), or logs (argument > 0). To find the range, examine the graph's turning points, asymptotes, and end behaviour. Always state both using proper inequality/set notation.",
+      question: "What are the three most common reasons a function's domain gets restricted?",
+      keywords: ['denominator', 'square root', 'domain', 'range'] },
+    { subject: 'maths', topic: 'Functions', leaf: 'Composite functions',
+      explain: "fg(x) means 'do g first, then f': fg(x) = f(g(x)). Order matters — fg(x) generally ≠ gf(x). To evaluate, substitute the entire g(x) expression into every x in f(x), working from the inside out. The domain of fg(x) is restricted to x-values where g(x) is defined AND g(x) lies in the domain of f. Common mistake: computing gf(x) when fg(x) was asked for.",
+      question: "For fg(x), which function do you apply to x first — f or g? Explain why order matters.",
+      keywords: ['f(g(x))', 'order', 'inside out', 'substitute'] },
+    { subject: 'maths', topic: 'Functions', leaf: 'Inverse functions',
+      explain: "f⁻¹(x) reverses what f(x) does, and only exists if f is one-to-one (otherwise you must restrict the domain first). To find it: write y = f(x), rearrange to make x the subject, then swap x and y. Graphically, f⁻¹(x) is the reflection of f(x) in the line y = x, and the domain of f becomes the range of f⁻¹ (and vice versa).",
+      question: "What three steps do you follow to find f⁻¹(x) algebraically, and what does its graph look like relative to f(x)?",
+      keywords: ['one-to-one', 'swap x and y', 'y = x', 'reflection'] },
+    { subject: 'maths', topic: 'Graph Transformations', leaf: 'y = |f(x)|',
+      explain: "Takes the graph of f(x) and reflects any part below the x-axis up above it, since the modulus makes all outputs non-negative. Parts already at or above the x-axis stay unchanged. Technique: sketch f(x) first, then flip only the negative sections. Exam trap: this only affects the output (y) — the x-values (roots) stay exactly where they were.",
+      question: "For y = |f(x)|, which parts of the original graph get reflected, and which stay the same?",
+      keywords: ['reflect negative', 'above x-axis', 'sketch first'] },
+    { subject: 'maths', topic: 'Graph Transformations', leaf: 'y = f(|x|)',
+      explain: "Takes the graph of f(x) for x ≥ 0, deletes everything for x < 0, and replaces it with a mirror image of the x ≥ 0 part reflected in the y-axis — the result is always symmetrical about the y-axis. Exam trap: this is often confused with y=|f(x)|; here the modulus affects the INPUT, so it's the left side (x<0) that gets replaced, not a reflection of negative y-values.",
+      question: "y = f(|x|) is always symmetrical about which axis, and why?",
+      keywords: ['symmetrical', 'y-axis', 'replace x<0'] },
+    { subject: 'maths', topic: 'Trigonometry', leaf: 'Reciprocal functions',
+      explain: "sec(x) = 1/cos(x), cosec(x) = 1/sin(x), cot(x) = 1/tan(x) = cos(x)/sin(x). Their graphs have vertical asymptotes wherever the original function (cos, sin, tan) equals zero, since division by zero is undefined. sec(x) and cosec(x) never lie strictly between −1 and 1. Key identities: 1 + tan²x = sec²x and 1 + cot²x = cosec²x.",
+      question: "Where do sec(x) and cosec(x) have vertical asymptotes, and why?",
+      keywords: ['1/cos', '1/sin', 'asymptotes', 'sec squared'] },
+    { subject: 'maths', topic: 'Trigonometry', leaf: 'Trigonometric identities',
+      explain: "Core identities: sin²x + cos²x = 1, tan x = sin x / cos x, plus the derived 1+tan²x=sec²x and 1+cot²x=cosec²x. Double angle formulae: sin2x = 2sinxcosx; cos2x = cos²x−sin²x = 2cos²x−1 = 1−2sin²x. Used to simplify expressions, solve equations, and prove identities — always work from the more complex side towards the simpler side, one step at a time.",
+      question: "State the Pythagorean trig identity and one double angle formula for cos2x.",
+      keywords: ['sin squared', 'cos squared', 'double angle'] },
+    { subject: 'maths', topic: 'Trigonometry', leaf: 'Trigonometric transformations',
+      explain: "Standard rules apply: y=sin(x)+a shifts vertically; y=sin(x+a) shifts horizontally (careful — subtracting inside the brackets shifts right); y=a·sin(x) stretches vertically (changes amplitude); y=sin(ax) stretches horizontally (changes period — new period = 360°/a). Always identify amplitude, period and shifts before sketching, marking key max/min/intercept points.",
+      question: "Which part of y = a·sin(bx + c) controls the amplitude, and which part controls the period?",
+      keywords: ['amplitude', 'period', 'phase shift'] },
+    { subject: 'economics', topic: 'Business Growth', leaf: 'Business Growth',
+      explain: "Firms grow organically (internal: reinvesting profit, new outlets, new products — slower, lower-risk) or inorganically (external: mergers and takeovers — faster, higher integration risk). Motives include economies of scale, market power, risk diversification, and profit. Growth can be constrained by market size, access to finance, and owner objectives (e.g. wanting to stay small).",
+      question: "What's the key difference between organic and inorganic growth, in terms of speed and risk?",
+      keywords: ['organic', 'inorganic', 'economies of scale'] },
+    { subject: 'economics', topic: 'Mergers', leaf: 'Mergers',
+      explain: "Horizontal mergers (same industry/stage, e.g. two supermarkets) aim for economies of scale and market share. Vertical mergers (different stages of the same supply chain — backward if buying a supplier, forward if buying a distributor) aim for supply chain control. Conglomerate mergers (unrelated industries) aim for risk diversification. Large mergers can trigger investigation by competition authorities (e.g. the CMA) over reduced competition.",
+      question: "Give an example of a horizontal merger and a vertical merger, and state the main motive behind each.",
+      keywords: ['horizontal', 'vertical', 'conglomerate'] },
+    { subject: 'economics', topic: 'Revenues', leaf: 'Revenues',
+      explain: "Total Revenue (TR) = Price × Quantity. Average Revenue (AR) = TR/Q, which equals price and is the firm's demand curve. Marginal Revenue (MR) = change in TR from selling one more unit. For a price taker (perfect competition), AR = MR = Price (horizontal line). For a price maker, AR slopes down and MR falls twice as steeply, because lowering price to sell one more unit applies to ALL units sold, not just the marginal one.",
+      question: "Why does MR fall faster than AR for a firm that is a price maker (not a price taker)?",
+      keywords: ['total revenue', 'ar = mr', 'price maker'] },
+    { subject: 'economics', topic: 'Costs', leaf: 'Costs',
+      explain: "Fixed costs (FC) don't vary with output in the short run (e.g. rent); variable costs (VC) do (e.g. materials). TC = FC + VC. AC = TC/Q. Marginal cost (MC) = change in TC from producing one more unit. MC eventually rises due to the law of diminishing marginal returns. The MC curve crosses AC (and AVC) at their minimum points — a key diagram relationship.",
+      question: "Why does marginal cost eventually rise as output increases, in the short run?",
+      keywords: ['fixed cost', 'variable cost', 'diminishing returns'] },
+    { subject: 'economics', topic: 'Profits', leaf: 'Profits',
+      explain: "Profit = Total Revenue − Total Cost. Normal profit is the minimum needed to keep a firm in the industry (an opportunity cost, not 'extra' profit) — occurs where AR = AC. Supernormal profit is any profit above normal (AR > AC); a subnormal loss occurs when AR < AC. In perfect competition, supernormal profit attracts new entrants, competing it back to normal long-run; monopolies can sustain supernormal profit due to barriers to entry.",
+      question: "What condition (in terms of AR and AC) defines 'normal profit', and why is it not really zero profit?",
+      keywords: ['normal profit', 'supernormal', 'ar = ac'] },
+    { subject: 'economics', topic: 'Market Structures', leaf: 'Perfect Competition',
+      explain: "Assumptions: many small firms, homogeneous products, perfect information, no barriers to entry/exit, firms are price takers (AR=MR=Price). Short run: firms can make supernormal profit or a loss. Long run: free entry/exit competes profit down to normal only, because supernormal profit attracts new entrants who raise supply and lower price. Allocatively and productively efficient in the long run.",
+      question: "Why can a perfectly competitive firm only earn normal profit in the long run?",
+      keywords: ['price taker', 'normal profit', 'free entry'] },
+    { subject: 'economics', topic: 'Market Structures', leaf: 'Monopolistic Competition',
+      explain: "Many firms, low barriers to entry/exit, but products are differentiated (branding, quality) giving each firm some price-setting power. Firms compete on non-price factors as well as price. Short run: can make supernormal profit; long run: free entry erodes this to normal profit — but the firm is NOT productively/allocatively efficient long-run, since it produces where AR (not MC) meets AC, leaving excess capacity.",
+      question: "What stops a monopolistically competitive firm from being productively efficient in the long run?",
+      keywords: ['product differentiation', 'excess capacity', 'normal profit'] },
+    { subject: 'economics', topic: 'Market Structures', leaf: 'Oligopoly',
+      explain: "A market dominated by a few large, interdependent firms (measured by a high concentration ratio). Key feature: interdependence — each firm must consider rivals' likely reactions before changing price, often leading to price rigidity (kinked demand curve) and non-price competition. Firms may collude (formally — illegal cartels, or tacitly, e.g. price leadership) to raise joint profits, though collusion is unstable due to the incentive to cheat.",
+      question: "What does 'interdependence' mean in an oligopoly, and how does it lead to price rigidity?",
+      keywords: ['interdependence', 'concentration ratio', 'collusion'] },
+    { subject: 'economics', topic: 'Market Structures', leaf: 'Monopoly',
+      explain: "A single dominant seller (in UK law, ≥25% market share defines monopoly power). High barriers to entry (patents, high set-up costs) let the firm sustain supernormal profit long-run by restricting output and charging above marginal cost (P > MC), causing allocative inefficiency and deadweight welfare loss versus a competitive market. Monopolies may also use price discrimination to boost revenue.",
+      question: "Why does a monopoly charging P > MC cause a deadweight welfare loss?",
+      keywords: ['barriers to entry', 'p > mc', 'deadweight loss'] },
+    { subject: 'economics', topic: 'Market Failure & Regulation', leaf: 'Market Failure & Regulation',
+      explain: "Market failure occurs when the free market misallocates resources. Causes: externalities (costs/benefits to third parties not reflected in price, e.g. pollution), public goods (non-excludable/non-rival, causing the free-rider problem and under-provision), information gaps (asymmetric information leading to poor decisions), and market power (monopolies restricting output). Governments correct this via regulation, taxes (internalising negative externalities), subsidies, and direct provision.",
+      question: "Name the four main causes of market failure, and one government policy used to correct each.",
+      keywords: ['externalities', 'public goods', 'information gaps', 'regulation'] },
+  ];
+
+  const STOPWORDS = new Set(['the','a','an','of','to','in','on','and','or','is','are','what','how','why','explain','tell','me','about','for','with','does','do','can','you']);
+
+  function tokenize(text) {
+    return String(text).toLowerCase().match(/[a-z0-9+|]+/g) || [];
+  }
+
+  function scoreEntryAgainstInput(entry, inputLower, inputTokens) {
+    const leafLower = entry.leaf.toLowerCase();
+    if (inputLower.includes(leafLower)) return 100;
+    const topicLower = entry.topic.toLowerCase();
+    let score = 0;
+    tokenize(entry.leaf).forEach(tok => {
+      if (STOPWORDS.has(tok) || tok.length < 3) return;
+      if (inputTokens.includes(tok)) score += 5;
+    });
+    tokenize(entry.topic).forEach(tok => {
+      if (STOPWORDS.has(tok) || tok.length < 3) return;
+      if (inputTokens.includes(tok)) score += 2;
+    });
+    if (inputLower.includes(topicLower)) score += 4;
+    return score;
+  }
+
+  function findBestTopicMatch(text) {
+    const inputLower = text.toLowerCase();
+    const inputTokens = tokenize(text);
+    let best = null;
+    let bestScore = 0;
+    KNOWLEDGE.forEach(entry => {
+      const s = scoreEntryAgainstInput(entry, inputLower, inputTokens);
+      if (s > bestScore) { bestScore = s; best = entry; }
+    });
+    return bestScore > 0 ? best : null;
+  }
+
+  function findEntry(subject, topic, leaf) {
+    return KNOWLEDGE.find(e => e.subject === subject && e.topic === topic && e.leaf === leaf);
+  }
+
+  /* ============================================================
+     STATE-AWARE HELPERS
+  ============================================================ */
+  function leafState(state, subject, topic, leaf) {
+    return state.syllabus[subject][topic][leaf];
+  }
+
+  function retentionLine(state, entry) {
+    const ls = leafState(state, entry.subject, entry.topic, entry.leaf);
+    const badge = M.getRetentionBadge(ls.lastRevised);
+    return `Retention: ${badge.label} (last revised ${M.daysAgoLabel(ls.lastRevised)})${ls.highPriority ? ' · ★ High-Priority this week' : ''}`;
+  }
+
+  function markLeafRevised(entry) {
+    const state = M.loadState();
+    leafState(state, entry.subject, entry.topic, entry.leaf).lastRevised = Date.now();
+    M.saveState(state);
+  }
+
+  function markLeafDone(entry) {
+    const state = M.loadState();
+    leafState(state, entry.subject, entry.topic, entry.leaf).done = true;
+    M.saveState(state);
+  }
+
+  /* ============================================================
+     CHAT ENGINE (local, offline, zero-setup)
+  ============================================================ */
+  let pendingQuiz = null; // { entry }
+
+  function buildWelcomeMessage(state) {
+    const name = state.onboarded ? '' : ' Looks like you haven\'t run this week\'s Strategy Briefing yet — head back to the Dashboard to set one up.';
+    return `Hi — I'm your Mentor Assistant. I can explain any of your 26 syllabus topics, quiz you, tell you what to study right now, or mark topics as revised for you. Try "explain the Krebs cycle", "quiz me on economics", or "what should I study now?"${name}`;
+  }
+
+  function listCriticalDecay(state) {
+    const leaves = M.computeCriticalDecayLeaves(state);
+    if (!leaves.length) return "Nothing has hit Critical Decay (7+ days unrevised) right now — nice work staying on top of reviews.";
+    const names = leaves.map(l => `${l.leafName} (${M.SUBJECT_LABELS[l.subject]})`);
+    return `⚠️ ${leaves.length} topic${leaves.length === 1 ? ' has' : 's have'} entered Critical Decay: ${names.join(', ')}. Want me to mark any of these as revised once you've reviewed them?`;
+  }
+
+  function listHomework(state) {
+    const pending = state.homework.filter(t => !t.done);
+    if (!pending.length) return "Your homework list is fully cleared. 🎉";
+    return `You have ${pending.length} pending assignment${pending.length === 1 ? '' : 's'}: ${pending.map(t => t.text).join(' · ')}`;
+  }
+
+  function whatToStudyNow(state) {
+    const block = M.getCurrentFreePeriodBlock();
+    if (block) {
+      const pending = state.homework.filter(t => !t.done);
+      if (pending.length) {
+        return `You're currently in your ${block.day} ${block.period} free period — that's locked for school homework only. Start with: "${pending[0].text}". Say "fast-track" reminders aside, come back here once it's done and I'll suggest your next revision block.`;
+      }
+      return `You're in your ${block.day} ${block.period} free period, and homework is fully cleared — great position to be in. Since this slot is reserved for school work, use any spare time to skim your Teams/Outlook for anything newly set.`;
+    }
+    if (M.isWeekend()) {
+      const decay = M.computeCriticalDecayLeaves(state);
+      if (decay.length) return `It's the weekend — Weekend Sprint Zone is active. With ${decay.length} topic(s) in Critical Decay, prioritise a Deep Syllabus Synthesis session covering: ${decay.map(l => l.leafName).join(', ')}.`;
+      return "It's the weekend — good time for Full Past Paper Practice or Deep Syllabus Synthesis. Check the Weekend Sprint Zone on your Dashboard.";
+    }
+    const subjects = Object.keys(M.SUBJECT_LABELS);
+    let riskiest = subjects[0];
+    subjects.forEach(s => { if (state.anxiety[s] > state.anxiety[riskiest]) riskiest = s; });
+    const decay = M.computeCriticalDecayLeaves(state).filter(l => l.subject === riskiest);
+    if (decay.length) {
+      return `Your highest-anxiety subject is ${M.SUBJECT_LABELS[riskiest]} (${state.anxiety[riskiest]}/10), and it has ${decay.length} topic(s) in Critical Decay. Start your 45-Min Weak Spot Blitz on: ${decay.map(l => l.leafName).join(', ')}.`;
+    }
+    return `No free period right now. Your highest-anxiety subject is ${M.SUBJECT_LABELS[riskiest]} (${state.anxiety[riskiest]}/10) — that's your best target for tonight's 15-Min Blurting or 45-Min Weak Spot Blitz.`;
+  }
+
+  function tryHandleMutationCommand(inputLower) {
+    const mutateVerbs = ['mark', 'i revised', "i've revised", 'i finished', "i've finished", 'i completed', "i've completed", 'done with'];
+    if (!mutateVerbs.some(v => inputLower.includes(v))) return null;
+    const entry = findBestTopicMatch(inputLower);
+    if (!entry) return "I can mark a topic as revised or done, but I couldn't tell which topic you mean — try naming it directly, e.g. \"mark Krebs cycle as revised\".";
+    const wantsDone = /\bdone\b|\bcomplete|\bfinish|\bmaster/i.test(inputLower);
+    if (wantsDone) {
+      markLeafDone(entry);
+      return `✅ Marked "${entry.leaf}" as done in your Syllabus Checklist. Nice work — that'll show up on your Dashboard's Coverage Map.`;
+    }
+    markLeafRevised(entry);
+    return `🔄 Marked "${entry.leaf}" as revised just now — its retention badge will show Fresh on your Dashboard.`;
+  }
+
+  function tryHandleQuizCommand(inputLower, state) {
+    if (!(inputLower.includes('quiz') || inputLower.includes('test me'))) return null;
+    let pool = KNOWLEDGE;
+    const subjectMatch = Object.keys(M.SUBJECT_LABELS).find(s => inputLower.includes(s) || inputLower.includes(M.SUBJECT_LABELS[s].toLowerCase()));
+    if (subjectMatch) pool = pool.filter(e => e.subject === subjectMatch);
+    const namedTopic = findBestTopicMatch(inputLower);
+    const entry = namedTopic && pool.includes(namedTopic) ? namedTopic : pool[Math.floor(Math.random() * pool.length)];
+    pendingQuiz = { entry };
+    return `📝 Quiz time — ${M.SUBJECT_LABELS[entry.subject]} · ${entry.leaf}\n\n${entry.question}\n\n(Type your answer, or say "skip".)`;
+  }
+
+  function evaluateQuizAnswer(answerText) {
+    const entry = pendingQuiz.entry;
+    pendingQuiz = null;
+    if (/^skip$/i.test(answerText.trim())) {
+      return `No worries — here's the explanation:\n\n${entry.explain}`;
+    }
+    const answerLower = answerText.toLowerCase();
+    const matched = entry.keywords.filter(k => answerLower.includes(k));
+    const good = matched.length >= Math.ceil(entry.keywords.length / 2);
+    let feedback = good
+      ? `✅ Solid answer — you covered: ${matched.join(', ')}.`
+      : `🤔 Partial — you mentioned ${matched.length ? matched.join(', ') : 'none of the key terms'}. Key terms to include: ${entry.keywords.join(', ')}.`;
+    feedback += `\n\nFull explanation for reinforcement:\n${entry.explain}`;
+    if (good) {
+      markLeafRevised(entry);
+      feedback += `\n\n🔄 Since you clearly know this, I've marked "${entry.leaf}" as revised for you.`;
+    }
+    return feedback;
+  }
+
+  function generateLocalReply(userText, state) {
+    const inputLower = userText.toLowerCase().trim();
+
+    if (pendingQuiz) {
+      return evaluateQuizAnswer(userText);
+    }
+    if (!inputLower) return "Go ahead and ask me something — try \"help\" to see what I can do.";
+
+    if (/^(hi|hello|hey|yo)\b/.test(inputLower)) {
+      return buildWelcomeMessage(state);
+    }
+    if (inputLower.includes('help') || inputLower.includes('what can you do')) {
+      return "I can:\n• Explain any of your 26 syllabus topics (\"explain glycolysis\")\n• Quiz you (\"quiz me\" or \"quiz me on maths\")\n• Tell you what to study right now (\"what should I study now?\")\n• Mark topics revised or done (\"mark Krebs cycle as revised\")\n• Show your Mentor Strategy, homework, or Critical Decay topics";
+    }
+
+    const mutationReply = tryHandleMutationCommand(inputLower);
+    if (mutationReply) return mutationReply;
+
+    const quizReply = tryHandleQuizCommand(inputLower, state);
+    if (quizReply) return quizReply;
+
+    if (inputLower.includes('strategy') || inputLower.includes('briefing') || inputLower.includes('mentor')) {
+      return state.mentorStrategyText || "You haven't completed a Weekly Strategy Briefing yet — go to the Dashboard and click \"Reset Week\" to generate one.";
+    }
+    if (inputLower.includes('decay') || inputLower.includes('critical') || inputLower.includes('forgetting') || inputLower.includes('forgotten')) {
+      return listCriticalDecay(state);
+    }
+    if (inputLower.includes('homework') || inputLower.includes("what's due") || inputLower.includes('assignment')) {
+      return listHomework(state);
+    }
+    if (inputLower.includes('what should i study') || inputLower.includes('what next') || inputLower.includes('study now') || inputLower.includes('help me plan') || inputLower === 'what now') {
+      return whatToStudyNow(state);
+    }
+
+    const entry = findBestTopicMatch(userText);
+    if (entry) {
+      return `${entry.topic} → ${entry.leaf}\n\n${entry.explain}\n\n${retentionLine(state, entry)}\n\nWant a quick self-test on this? Just say "quiz me on ${entry.leaf.toLowerCase()}".`;
+    }
+
+    return "I didn't quite catch a topic there. Try naming one directly (e.g. \"explain oligopoly\"), or ask \"what should I study now?\", \"quiz me\", or \"help\".";
+  }
+
+  /* ============================================================
+     OPTIONAL: REAL CLAUDE PROXY CONNECTOR
+  ============================================================ */
+  async function tryRealAiReply(userText, state, historyMessages) {
+    const proxyUrl = document.getElementById('proxyUrlInput').value.trim();
+    if (!proxyUrl) return null;
+    const systemContext = `You are a supportive A-Level study mentor for a Year 13 student. Their current Mentor Strategy: "${state.mentorStrategyText || 'none yet'}". Keep answers concise, accurate, and exam-focused for AQA Biology, OCR A Maths, and Edexcel A Economics.`;
+    try {
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 12000);
+      const res = await fetch(proxyUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ system: systemContext, message: userText, history: historyMessages }),
+        signal: controller.signal,
+      });
+      clearTimeout(timeout);
+      if (!res.ok) throw new Error(`Proxy responded ${res.status}`);
+      const data = await res.json();
+      if (!data || !data.reply) throw new Error('Malformed proxy response');
+      setProxyStatus(true);
+      return data.reply;
+    } catch (err) {
+      setProxyStatus(false, err.message);
+      return null;
+    }
+  }
+
+  function setProxyStatus(ok, detail) {
+    const el = document.getElementById('proxyStatus');
+    if (ok) {
+      el.textContent = 'Proxy status: connected — using real Claude responses.';
+      el.className = 'font-mono text-[11px] text-emerald-400';
+    } else {
+      el.textContent = `Proxy status: unreachable (${detail || 'not running'}) — falling back to the offline engine.`;
+      el.className = 'font-mono text-[11px] text-amber-400';
+    }
+  }
+
+  /* ============================================================
+     CHAT UI
+  ============================================================ */
+  const chatWindow = document.getElementById('chatWindow');
+  const chatForm = document.getElementById('chatForm');
+  const chatInput = document.getElementById('chatInput');
+  const suggestionRow = document.getElementById('suggestionRow');
+
+  function loadChatHistory() {
+    try {
+      const raw = localStorage.getItem(CHAT_STORAGE_KEY);
+      return raw ? JSON.parse(raw) : [];
+    } catch (e) {
+      return [];
+    }
+  }
+
+  function saveChatHistory(history) {
+    try {
+      localStorage.setItem(CHAT_STORAGE_KEY, JSON.stringify(history.slice(-200)));
+    } catch (e) { /* ignore quota errors */ }
+  }
+
+  let chatHistory = loadChatHistory();
+
+  function renderMessage(msg) {
+    const isUser = msg.role === 'user';
+    const wrap = document.createElement('div');
+    wrap.className = `flex ${isUser ? 'justify-end' : 'justify-start'} fade-in`;
+    const bubble = document.createElement('div');
+    bubble.className = `msg-bubble rounded-2xl px-4 py-2.5 text-sm ${isUser ? 'bg-brand-600 text-white rounded-br-sm' : 'bg-gray-800/80 border border-gray-700 text-gray-100 rounded-bl-sm'}`;
+    bubble.textContent = msg.text;
+    wrap.appendChild(bubble);
+    chatWindow.appendChild(wrap);
+    chatWindow.scrollTop = chatWindow.scrollHeight;
+  }
+
+  function renderAllMessages() {
+    chatWindow.innerHTML = '';
+    if (!chatHistory.length) {
+      const state = M.loadState();
+      const welcome = { role: 'assistant', text: buildWelcomeMessage(state) };
+      chatHistory = [welcome];
+      saveChatHistory(chatHistory);
+    }
+    chatHistory.forEach(renderMessage);
+  }
+
+  function showTypingIndicator() {
+    const wrap = document.createElement('div');
+    wrap.id = 'typingIndicator';
+    wrap.className = 'flex justify-start fade-in';
+    wrap.innerHTML = `<div class="msg-bubble rounded-2xl px-4 py-3 bg-gray-800/80 border border-gray-700 rounded-bl-sm flex gap-1.5">
+      <span class="typing-dot h-1.5 w-1.5 rounded-full bg-gray-400"></span>
+      <span class="typing-dot h-1.5 w-1.5 rounded-full bg-gray-400"></span>
+      <span class="typing-dot h-1.5 w-1.5 rounded-full bg-gray-400"></span>
+    </div>`;
+    chatWindow.appendChild(wrap);
+    chatWindow.scrollTop = chatWindow.scrollHeight;
+  }
+
+  function hideTypingIndicator() {
+    const el = document.getElementById('typingIndicator');
+    if (el) el.remove();
+  }
+
+  async function handleUserMessage(text) {
+    const trimmed = text.trim();
+    if (!trimmed) return;
+    chatHistory.push({ role: 'user', text: trimmed });
+    renderMessage({ role: 'user', text: trimmed });
+    saveChatHistory(chatHistory);
+    chatInput.value = '';
+
+    showTypingIndicator();
+    const state = M.loadState();
+    const useRealAi = document.getElementById('useRealAi').checked;
+
+    let reply = null;
+    if (useRealAi) {
+      const priorHistory = chatHistory.slice(0, -1).slice(-9);
+      reply = await tryRealAiReply(trimmed, state, priorHistory);
+    }
+    if (!reply) {
+      reply = generateLocalReply(trimmed, state);
+    }
+
+    hideTypingIndicator();
+    chatHistory.push({ role: 'assistant', text: reply });
+    renderMessage({ role: 'assistant', text: reply });
+    saveChatHistory(chatHistory);
+  }
+
+  chatForm.addEventListener('submit', (e) => {
+    e.preventDefault();
+    handleUserMessage(chatInput.value);
+  });
+
+  const SUGGESTIONS = [
+    'What should I study now?',
+    'Quiz me',
+    'Explain the Krebs cycle',
+    'Show my Mentor Strategy',
+    "What's decaying?",
+  ];
+  suggestionRow.innerHTML = SUGGESTIONS.map(s =>
+    `<button type="button" data-suggestion="${M.escapeHtml(s)}" class="rounded-full border border-gray-700 hover:border-brand-500 hover:bg-brand-500/10 transition px-3 py-1.5 text-xs text-gray-300">${M.escapeHtml(s)}</button>`
+  ).join('');
+  suggestionRow.addEventListener('click', (e) => {
+    const btn = e.target.closest('[data-suggestion]');
+    if (btn) handleUserMessage(btn.dataset.suggestion);
+  });
+
+  /* ============================================================
+     ADVANCED PANEL TOGGLE
+  ============================================================ */
+  const advancedPanel = document.getElementById('advancedPanel');
+  const advancedChevron = document.getElementById('advancedChevron');
+  document.getElementById('btnToggleAdvanced').addEventListener('click', () => {
+    const isHidden = advancedPanel.classList.contains('hidden');
+    advancedPanel.classList.toggle('hidden');
+    advancedChevron.textContent = isHidden ? '▲' : '▼';
+  });
+
+  /* ============================================================
+     INIT
+  ============================================================ */
+  renderAllMessages();
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Free Periods & Homework — The A* Mentor</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🧠</text></svg>" />
+<script>
+  (function () { try { var t = localStorage.getItem('a_star_theme'); if (t === 'light' || t === 'dark') document.documentElement.setAttribute('data-theme', t); } catch (e) {} })();
+</script>
+<link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+<div class="app-shell">
+  <div id="sidebarMount"></div>
+  <main class="main-col">
+    <div class="main-inner">
+
+      <div class="page-header">
+        <div class="page-eyebrow">☀️ School Free Periods Zone</div>
+        <h1 class="page-title">Free Periods & Homework</h1>
+        <p class="page-sub">Your fixed weekly timetable is locked for school homework and deadlines only.</p>
+      </div>
+
+      <div class="grid grid-2">
+        <section class="card card-pad fade-in">
+          <p class="card-title">Fixed Weekly Timetable</p>
+          <p class="card-sub">Tick a slot off once you've used it productively.</p>
+          <div id="timetableList"></div>
+          <div style="margin-top:14px;background:var(--panel);border:1px solid var(--line);border-radius:var(--radius-sm);padding:12px;">
+            <div style="display:flex;justify-content:space-between;font-size:12px;color:var(--ink2);margin-bottom:6px;">
+              <span>Productive time used</span><span id="freeTimeFraction" style="font-family:var(--font-mono);">0 / 400 min</span>
+            </div>
+            <div class="progress-track"><div class="progress-fill" id="freeTimeBar" style="width:0%;"></div></div>
+          </div>
+        </section>
+
+        <section class="card card-pad fade-in">
+          <div style="display:flex;justify-content:space-between;align-items:center;">
+            <p class="card-title" style="margin:0;">Homework & Deadlines</p>
+            <span class="badge badge-neutral" id="homeworkCountBadge">0</span>
+          </div>
+          <p class="card-sub">Cleared aggressively during free periods.</p>
+
+          <button id="btnFastTrack" class="btn btn-primary btn-block" style="margin-bottom:10px;">⚡ Fast-Track Next Assignment</button>
+
+          <button id="btnUploadHomework" type="button" class="btn btn-outline btn-block" style="margin-bottom:6px;">📎 Upload Homework File (.txt / .csv)</button>
+          <input id="homeworkFileInput" type="file" accept=".txt,.csv,.tsv,.md" class="hidden" style="display:none;" />
+          <p style="font-size:10.5px;color:var(--ink3);margin:0 0 14px;">Export your Teams/Outlook assignment list to a text or CSV file, then upload it here.</p>
+
+          <div style="display:flex;gap:8px;margin-bottom:12px;">
+            <input id="homeworkInput" type="text" class="input" placeholder="Add a homework task…" />
+            <button id="btnAddHomework" class="btn btn-ghost">Add</button>
+          </div>
+
+          <div id="homeworkList" style="max-height:340px;overflow-y:auto;"></div>
+        </section>
+      </div>
+
+      <footer class="site-foot">The A* Mentor — your study data stays in your browser's local storage.</footer>
+    </div>
+  </main>
+</div>
+
+<script src="mentor-shared.js"></script>
+<script src="nav.js"></script>
+<script>
+(function () {
+  'use strict';
+  const M = window.MentorShared;
+  let state = M.loadState();
+
+  function renderTimetable() {
+    const list = document.getElementById('timetableList');
+    list.innerHTML = M.TIMETABLE.map(block => `
+      <label class="row" style="cursor:pointer;">
+        <input type="checkbox" data-action="toggle-freeperiod" data-day="${block.key}" ${state.freePeriodUsage[block.key] ? 'checked' : ''} />
+        <span style="flex:1;min-width:0;">
+          <span class="row-title" style="display:block;${state.freePeriodUsage[block.key] ? 'color:var(--ok);' : ''}">${block.day} · ${block.period}</span>
+          <span class="row-meta">${block.time}</span>
+        </span>
+        <span class="row-meta" style="font-family:var(--font-mono);">${block.minutes}m</span>
+      </label>
+    `).join('');
+
+    const usedMinutes = M.TIMETABLE.filter(b => state.freePeriodUsage[b.key]).reduce((s, b) => s + b.minutes, 0);
+    document.getElementById('freeTimeFraction').textContent = `${usedMinutes} / ${M.TOTAL_FREE_MINUTES} min`;
+    document.getElementById('freeTimeBar').style.width = `${Math.round((usedMinutes / M.TOTAL_FREE_MINUTES) * 100)}%`;
+  }
+
+  function renderHomework() {
+    const list = document.getElementById('homeworkList');
+    if (!state.homework.length) {
+      list.innerHTML = `<p style="font-size:13px;color:var(--ink3);text-align:center;padding:24px 0;border:1px dashed var(--line);border-radius:var(--radius-sm);">No homework logged. Fully cleared! 🎉</p>`;
+    } else {
+      list.innerHTML = state.homework.map(t => `
+        <div class="row">
+          <input type="checkbox" data-action="toggle-homework" data-id="${t.id}" ${t.done ? 'checked' : ''} />
+          <span class="row-title truncate ${t.done ? 'strike' : ''}" style="flex:1;min-width:0;">${M.escapeHtml(t.text)}</span>
+          <button type="button" data-action="delete-homework" data-id="${t.id}" class="btn btn-sm btn-danger">✕</button>
+        </div>
+      `).join('');
+    }
+    document.getElementById('homeworkCountBadge').textContent = String(state.homework.length);
+  }
+
+  document.getElementById('timetableList').addEventListener('click', (e) => {
+    const cb = e.target.closest('input[data-action="toggle-freeperiod"]');
+    if (cb) { state.freePeriodUsage[cb.dataset.day] = cb.checked; M.saveState(state); renderTimetable(); }
+  });
+
+  document.getElementById('homeworkList').addEventListener('click', (e) => {
+    const del = e.target.closest('[data-action="delete-homework"]');
+    if (del) { state.homework = state.homework.filter(t => t.id !== del.dataset.id); M.saveState(state); renderHomework(); return; }
+    const cb = e.target.closest('input[data-action="toggle-homework"]');
+    if (cb) { const item = state.homework.find(t => t.id === cb.dataset.id); if (item) item.done = cb.checked; M.saveState(state); renderHomework(); }
+  });
+
+  function addHomework(text) {
+    const trimmed = text.trim();
+    if (!trimmed) return;
+    state.homework.push({ id: M.uid(), text: trimmed, done: false });
+    M.saveState(state);
+    renderHomework();
+  }
+  document.getElementById('btnAddHomework').addEventListener('click', () => {
+    addHomework(document.getElementById('homeworkInput').value);
+    document.getElementById('homeworkInput').value = '';
+  });
+  document.getElementById('homeworkInput').addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') { addHomework(document.getElementById('homeworkInput').value); document.getElementById('homeworkInput').value = ''; }
+  });
+
+  document.getElementById('btnFastTrack').addEventListener('click', () => {
+    const next = state.homework.find(t => !t.done);
+    if (!next) { alert('No pending homework — you are fully cleared! 🎉'); return; }
+    next.done = true;
+    M.saveState(state);
+    renderHomework();
+  });
+
+  function parseHomeworkFileText(rawText, filename) {
+    const isCsv = /\.(csv|tsv)$/i.test(filename);
+    const lines = rawText.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
+    if (!lines.length) return [];
+    if (!isCsv) return lines;
+    const delimiter = filename.toLowerCase().endsWith('.tsv') ? '\t' : ',';
+    const headerLooksLikeHeader = /subject|task|assignment|title|description|due/i.test(lines[0]) && !/\d/.test(lines[0]);
+    const dataLines = headerLooksLikeHeader ? lines.slice(1) : lines;
+    return dataLines.map(line => line.split(delimiter).map(cell => cell.trim().replace(/^"|"$/g, '')).filter(Boolean).join(' — ')).filter(Boolean);
+  }
+
+  document.getElementById('btnUploadHomework').addEventListener('click', () => document.getElementById('homeworkFileInput').click());
+  document.getElementById('homeworkFileInput').addEventListener('change', (e) => {
+    const file = e.target.files && e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      const lines = parseHomeworkFileText(String(reader.result || ''), file.name);
+      if (!lines.length) {
+        alert('No assignments could be read from that file.');
+      } else {
+        lines.forEach(line => state.homework.push({ id: M.uid(), text: line, done: false }));
+        M.saveState(state);
+        renderHomework();
+        alert(`Imported ${lines.length} assignment${lines.length === 1 ? '' : 's'} from "${file.name}".`);
+      }
+      e.target.value = '';
+    };
+    reader.readAsText(file);
+  });
+
+  renderTimetable();
+  renderHomework();
+})();
+</script>
+</body>
+</html>

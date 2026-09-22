@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Analytics — The A* Mentor</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🧠</text></svg>" />
+<script>
+  (function () { try { var t = localStorage.getItem('a_star_theme'); if (t === 'light' || t === 'dark') document.documentElement.setAttribute('data-theme', t); } catch (e) {} })();
+</script>
+<link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+<div class="app-shell">
+  <div id="sidebarMount"></div>
+  <main class="main-col">
+    <div class="main-inner">
+
+      <div class="page-header">
+        <div class="page-eyebrow">📊 Deep Analytics</div>
+        <h1 class="page-title">Retention & Coverage</h1>
+        <p class="page-sub">Science-based analytics for your revision.</p>
+      </div>
+
+      <section class="grid grid-4" style="margin-bottom:24px;">
+        <div class="stat-tile"><div class="label">High-Priority</div><div class="value" id="statHighPriority">0</div></div>
+        <div class="stat-tile"><div class="label">Critical Decay</div><div class="value" id="statCriticalDecay">0</div></div>
+        <div class="stat-tile"><div class="label">Homework Cleared</div><div class="value" id="statHwPct">0%</div></div>
+        <div class="stat-tile"><div class="label">Overall Mastery</div><div class="value" id="statOverallMastery">0%</div></div>
+      </section>
+
+      <p class="page-eyebrow" style="margin-bottom:10px;">Syllabus Coverage Map</p>
+      <section class="grid grid-3" id="coverageContainer" style="margin-bottom:28px;"></section>
+
+      <p class="page-eyebrow" style="margin-bottom:10px;">Exam Board Confidence Matrix <span style="color:var(--ink3);font-weight:500;text-transform:none;">(drag to rate 1–10)</span></p>
+      <section class="card card-pad fade-in" id="confidenceContainer" style="display:flex;flex-direction:column;gap:18px;"></section>
+
+      <footer class="site-foot">The A* Mentor — your study data stays in your browser's local storage.</footer>
+    </div>
+  </main>
+</div>
+
+<script src="mentor-shared.js"></script>
+<script src="nav.js"></script>
+<script>
+(function () {
+  'use strict';
+  const M = window.MentorShared;
+  let state = M.loadState();
+  const ACCENT_VAR = { bio: '--bio', maths: '--maths', econ: '--econ' };
+
+  function renderStats() {
+    document.getElementById('statHighPriority').textContent = String(M.computeHighPriorityCount(state));
+    document.getElementById('statCriticalDecay').textContent = String(M.computeCriticalDecayLeaves(state).length);
+    const hwTotal = state.homework.length;
+    const hwDone = state.homework.filter(t => t.done).length;
+    document.getElementById('statHwPct').textContent = `${hwTotal ? Math.round((hwDone / hwTotal) * 100) : 0}%`;
+    document.getElementById('statOverallMastery').textContent = `${M.computeOverallMasteryPct(state)}%`;
+  }
+
+  function renderCoverageCard(subjectKey) {
+    const subj = M.SYLLABUS[subjectKey];
+    let doneCount = 0, total = 0;
+    subj.topics.forEach(topic => topic.leaves.forEach(leaf => { total++; if (state.syllabus[subjectKey][topic.name][leaf].done) doneCount++; }));
+    const pct = total ? Math.round((doneCount / total) * 100) : 0;
+    const radius = 40, circumference = 2 * Math.PI * radius, offset = circumference - (pct / 100) * circumference;
+    return `
+      <div class="card card-pad fade-in" style="display:flex;align-items:center;gap:16px;">
+        <div style="position:relative;width:96px;height:96px;flex-shrink:0;">
+          <svg viewBox="0 0 100 100" width="96" height="96" style="transform:rotate(-90deg);">
+            <circle cx="50" cy="50" r="${radius}" fill="none" stroke="var(--line)" stroke-width="10" />
+            <circle cx="50" cy="50" r="${radius}" fill="none" stroke="var(${ACCENT_VAR[subj.accent]})" stroke-width="10" stroke-linecap="round"
+              stroke-dasharray="${circumference}" stroke-dashoffset="${offset}" style="transition:stroke-dashoffset .5s ease;" />
+          </svg>
+          <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:800;">${pct}%</div>
+        </div>
+        <div style="min-width:0;">
+          <p style="font-size:13px;font-weight:800;color:var(${ACCENT_VAR[subj.accent]});margin:0 0 4px;">${subj.label}</p>
+          <p style="font-size:12.5px;color:var(--ink3);margin:0;">${doneCount} / ${total} topics mastered</p>
+        </div>
+      </div>
+    `;
+  }
+
+  function renderConfidence() {
+    document.getElementById('confidenceContainer').innerHTML = Object.keys(M.SYLLABUS).map(subjectKey => {
+      const subj = M.SYLLABUS[subjectKey];
+      const value = state.confidence[subjectKey];
+      return `
+        <div>
+          <div style="display:flex;justify-content:space-between;margin-bottom:6px;">
+            <span style="font-size:13px;font-weight:700;color:var(${ACCENT_VAR[subj.accent]});">${subj.label}</span>
+            <span id="confValue-${subjectKey}" style="font-family:var(--font-mono);font-size:12px;color:var(--ink3);">${value} / 10</span>
+          </div>
+          <input type="range" min="1" max="10" value="${value}" data-subject="${subjectKey}" style="color:var(${ACCENT_VAR[subj.accent]});" />
+        </div>
+      `;
+    }).join('');
+  }
+
+  document.getElementById('confidenceContainer').addEventListener('input', (e) => {
+    const slider = e.target.closest('input[type="range"]');
+    if (!slider) return;
+    state.confidence[slider.dataset.subject] = parseInt(slider.value, 10);
+    M.saveState(state);
+    document.getElementById(`confValue-${slider.dataset.subject}`).textContent = `${slider.value} / 10`;
+  });
+
+  document.getElementById('coverageContainer').innerHTML = Object.keys(M.SYLLABUS).map(renderCoverageCard).join('');
+  renderConfidence();
+  renderStats();
+})();
+</script>
+</body>
+</html>

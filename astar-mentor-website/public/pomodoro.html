@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Pomodoro — The A* Mentor</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🧠</text></svg>" />
+<script>
+  (function () { try { var t = localStorage.getItem('a_star_theme'); if (t === 'light' || t === 'dark') document.documentElement.setAttribute('data-theme', t); } catch (e) {} })();
+</script>
+<link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+<div class="app-shell">
+  <div id="sidebarMount"></div>
+  <main class="main-col">
+    <div class="main-inner" style="max-width:560px;">
+
+      <div class="page-header">
+        <div class="page-eyebrow">⏱️ Pomodoro Workspace</div>
+        <h1 class="page-title">Focus Timer</h1>
+        <p class="page-sub">25-minute focus intervals with a synth beep and browser notification on completion.</p>
+      </div>
+
+      <section class="card card-pad fade-in" style="text-align:center;">
+        <div id="pomodoroDisplay" style="font-family:var(--font-mono);font-size:56px;font-weight:800;letter-spacing:-0.02em;">25:00</div>
+        <p id="pomodoroStatus" style="font-size:12px;color:var(--ink3);text-transform:uppercase;letter-spacing:0.05em;font-weight:700;margin:6px 0 20px;">Ready to focus</p>
+        <div class="grid grid-3" style="gap:10px;">
+          <button id="btnPomStart" class="btn btn-primary">Start</button>
+          <button id="btnPomPause" class="btn btn-outline">Pause</button>
+          <button id="btnPomReset" class="btn btn-ghost">Reset</button>
+        </div>
+        <p style="font-size:12px;color:var(--ink3);margin-top:18px;">Sessions completed: <b id="pomodoroCount" style="color:var(--ink);">0</b></p>
+      </section>
+
+      <footer class="site-foot">The A* Mentor — your study data stays in your browser's local storage.</footer>
+    </div>
+  </main>
+</div>
+
+<script src="mentor-shared.js"></script>
+<script src="nav.js"></script>
+<script>
+(function () {
+  'use strict';
+  const M = window.MentorShared;
+  let state = M.loadState();
+  const POMODORO_SECONDS = 25 * 60;
+
+  let seconds = POMODORO_SECONDS;
+  let interval = null;
+  let running = false;
+
+  const display = document.getElementById('pomodoroDisplay');
+  const status = document.getElementById('pomodoroStatus');
+
+  function formatClock(total) {
+    const m = String(Math.floor(total / 60)).padStart(2, '0');
+    const s = String(total % 60).padStart(2, '0');
+    return `${m}:${s}`;
+  }
+  function updateDisplay() { display.textContent = formatClock(seconds); }
+
+  function playBeepSequence() {
+    try {
+      const AudioCtx = window.AudioContext || window.webkitAudioContext;
+      const ctx = new AudioCtx();
+      [660, 880, 1046.5].forEach((freq, i) => {
+        const start = ctx.currentTime + i * 0.22;
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = 'sine';
+        osc.frequency.value = freq;
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        gain.gain.setValueAtTime(0.0001, start);
+        gain.gain.exponentialRampToValueAtTime(0.28, start + 0.02);
+        gain.gain.exponentialRampToValueAtTime(0.0001, start + 0.2);
+        osc.start(start);
+        osc.stop(start + 0.22);
+      });
+    } catch (err) { console.error('Web Audio playback failed:', err); }
+  }
+
+  function notifyDone() {
+    const body = 'Great focus session! Time for a short break.';
+    if ('Notification' in window) {
+      if (Notification.permission === 'granted') { new Notification('🍅 Pomodoro Complete', { body }); return; }
+      if (Notification.permission !== 'denied') {
+        Notification.requestPermission().then((perm) => {
+          if (perm === 'granted') new Notification('🍅 Pomodoro Complete', { body });
+          else alert('Pomodoro Complete! ' + body);
+        });
+        return;
+      }
+    }
+    alert('Pomodoro Complete! ' + body);
+  }
+
+  function complete() {
+    clearInterval(interval);
+    running = false;
+    status.textContent = 'Session complete!';
+    playBeepSequence();
+    notifyDone();
+    state.pomodorosCompleted += 1;
+    M.saveState(state);
+    document.getElementById('pomodoroCount').textContent = String(state.pomodorosCompleted);
+    seconds = POMODORO_SECONDS;
+    updateDisplay();
+    setTimeout(() => { status.textContent = 'Ready to focus'; }, 3000);
+  }
+
+  document.getElementById('btnPomStart').addEventListener('click', () => {
+    if (running) return;
+    running = true;
+    status.textContent = 'Focusing…';
+    interval = setInterval(() => { seconds -= 1; updateDisplay(); if (seconds <= 0) complete(); }, 1000);
+  });
+  document.getElementById('btnPomPause').addEventListener('click', () => {
+    if (!running) return;
+    running = false;
+    clearInterval(interval);
+    status.textContent = 'Paused';
+  });
+  document.getElementById('btnPomReset').addEventListener('click', () => {
+    running = false;
+    clearInterval(interval);
+    seconds = POMODORO_SECONDS;
+    status.textContent = 'Ready to focus';
+    updateDisplay();
+  });
+
+  if ('Notification' in window && Notification.permission === 'default') {
+    Notification.requestPermission().catch(() => {});
+  }
+
+  document.getElementById('pomodoroCount').textContent = String(state.pomodorosCompleted);
+  updateDisplay();
+})();
+</script>
+</body>
+</html>

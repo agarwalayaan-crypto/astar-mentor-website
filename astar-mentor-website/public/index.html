@@ -42,6 +42,13 @@
         <div class="stat-tile"><div class="label">Overall mastery</div><div class="value" id="statOverallMastery">0%</div><div class="sub" id="statMasteryFraction">of the full spec</div></div>
       </section>
 
+      <section class="card card-pad fade-in" style="margin-bottom:24px;">
+        <p class="card-title">Exam countdown</p>
+        <p class="card-sub">Set each exam date once, and it stays here.</p>
+        <div class="grid grid-3" id="examDateInputs" style="margin-bottom:16px;"></div>
+        <div class="grid grid-3" id="examCountdownTiles"></div>
+      </section>
+
       <div class="page-eyebrow" style="margin-bottom:10px;">Jump to a section</div>
       <section class="grid grid-3 stagger" id="navCards"></section>
 
@@ -82,6 +89,49 @@
     document.getElementById('statMasteryFraction').textContent = `of ${M.TOTAL_LEAVES} spec points`;
   }
 
+  const ACCENT_VAR = { bio: '--bio', maths: '--maths', econ: '--econ' };
+
+  function renderExamInputs() {
+    document.getElementById('examDateInputs').innerHTML = Object.keys(M.SYLLABUS).map(subjectKey => {
+      const subj = M.SYLLABUS[subjectKey];
+      return `
+        <div>
+          <label class="field-label" style="color:var(${ACCENT_VAR[subj.accent]});">${M.SUBJECT_LABELS[subjectKey]}</label>
+          <input type="date" class="input" data-exam-subject="${subjectKey}" value="${state.examDates[subjectKey] || ''}" />
+        </div>
+      `;
+    }).join('');
+  }
+  document.getElementById('examDateInputs').addEventListener('change', (e) => {
+    const input = e.target.closest('[data-exam-subject]');
+    if (!input) return;
+    state.examDates[input.dataset.examSubject] = input.value || null;
+    M.saveState(state);
+    renderExamCountdown();
+  });
+
+  function renderExamCountdown() {
+    const tiles = Object.keys(M.SYLLABUS).map(subjectKey => {
+      const days = M.daysUntil(state.examDates[subjectKey]);
+      let valueText = 'Not set';
+      let color = 'var(--ink3)';
+      if (days !== null) {
+        if (days < 0) { valueText = 'Done'; color = 'var(--ink3)'; }
+        else {
+          valueText = days === 0 ? 'Today' : `${days} day${days === 1 ? '' : 's'}`;
+          color = days <= 14 ? 'var(--danger)' : days <= 45 ? 'var(--warn)' : 'var(--ok)';
+        }
+      }
+      return `
+        <div class="stat-tile">
+          <div class="label">${M.SUBJECT_LABELS[subjectKey]}</div>
+          <div class="value" style="color:${color};">${valueText}</div>
+        </div>
+      `;
+    });
+    document.getElementById('examCountdownTiles').innerHTML = tiles.join('');
+  }
+
   const CARDS = [
     { href: 'briefing.html', icon: '<circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1.4" fill="currentColor" stroke="none"/>', title: 'Weekly briefing', desc: 'A smarter, ranked plan built from your anxiety, confidence and decay data.' },
     { href: 'homework.html', icon: '<circle cx="12" cy="12" r="4.2"/><path d="M12 2.5v2.6M12 18.9v2.6M4.6 4.6l1.9 1.9M17.5 17.5l1.9 1.9M2.5 12h2.6M18.9 12h2.6M4.6 19.4l1.9-1.9M17.5 6.5l1.9-1.9"/>', title: 'Free periods & homework', desc: 'Your fixed school timetable, an organised homework list, and time-aware planning.' },
@@ -104,6 +154,8 @@
   renderHeader();
   renderBanner();
   renderStats();
+  renderExamInputs();
+  renderExamCountdown();
 })();
 </script>
 </body>

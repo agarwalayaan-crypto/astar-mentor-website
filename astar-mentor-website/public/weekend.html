@@ -14,17 +14,74 @@
 <div class="app-shell">
   <div id="sidebarMount"></div>
   <main class="main-col">
-    <div class="main-inner" style="max-width:780px;">
+    <div class="main-inner">
 
-      <div class="page-header">
-        <div class="page-eyebrow">Weekend sprint zone</div>
-        <h1 class="page-title">Extended deep work</h1>
-        <p class="page-sub" id="weekendSubtitle">Only active on Saturdays and Sundays.</p>
+      <div class="page-header" style="display:flex;justify-content:space-between;align-items:flex-end;flex-wrap:wrap;gap:10px;">
+        <div>
+          <div class="page-eyebrow">Weekend sprint zone</div>
+          <h1 class="page-title">Extended deep work</h1>
+          <p class="page-sub" id="weekendSubtitle">Only active on Saturdays and Sundays.</p>
+        </div>
       </div>
 
-      <div id="weekendContent" class="grid grid-2"></div>
-      <div id="weekendLockNotice" class="card card-pad fade-in" style="display:none;text-align:center;margin-top:10px;">
-        <p style="font-size:13.5px;font-weight:700;margin:0;">Unlocks automatically on Saturday and Sunday.</p>
+      <div id="weekendLockNotice" class="card card-pad fade-in" style="display:none;text-align:center;">
+        <p style="font-family:var(--font-display);font-size:16px;font-weight:600;margin:0 0 4px;">Unlocks automatically on Saturday and Sunday</p>
+        <p style="font-size:12.5px;color:var(--ink3);margin:0;">Come back this weekend for past paper logging, timed practice, and the synthesis tool.</p>
+      </div>
+
+      <div id="weekendContent" style="display:none;">
+
+        <section class="grid grid-4 stagger" style="margin-bottom:22px;">
+          <div class="stat-tile"><div class="label">Weekend streak</div><div class="value" id="statStreak">0</div><div class="sub">consecutive weekend days</div></div>
+          <div class="stat-tile"><div class="label">Past papers logged</div><div class="value" id="statPapers">0</div></div>
+          <div class="stat-tile"><div class="label">Average score</div><div class="value" id="statAvgScore">-</div></div>
+          <div class="stat-tile"><div class="label">Synthesis sessions</div><div class="value" id="statSynthesis">0</div></div>
+        </section>
+
+        <div class="grid grid-2" style="margin-bottom:20px;">
+
+          <section class="card card-pad fade-in">
+            <p class="card-title">Timed practice</p>
+            <p class="card-sub">Full past paper conditions. Pick a length, then log your score the moment you finish.</p>
+            <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px;" id="durationPicker"></div>
+            <div style="text-align:center;">
+              <div id="sprintDisplay" style="font-family:var(--font-mono);font-size:44px;font-weight:700;letter-spacing:-0.02em;">60:00</div>
+              <p id="sprintStatus" style="font-size:11px;color:var(--ink3);text-transform:uppercase;letter-spacing:0.05em;font-weight:700;margin:4px 0 14px;">Ready</p>
+              <div class="grid grid-3" style="gap:8px;">
+                <button id="btnSprintStart" class="btn btn-primary btn-sm">Start</button>
+                <button id="btnSprintPause" class="btn btn-outline btn-sm">Pause</button>
+                <button id="btnSprintReset" class="btn btn-ghost btn-sm">Reset</button>
+              </div>
+            </div>
+          </section>
+
+          <section class="card card-pad fade-in">
+            <p class="card-title">Deep syllabus synthesis</p>
+            <p class="card-sub">Interleaving practice. Connecting two topics forces recall of both and builds the bigger picture examiners reward.</p>
+            <label class="field-label">Subject</label>
+            <select id="synthesisSubject" class="select" style="margin-bottom:12px;"></select>
+            <button type="button" id="btnGeneratePair" class="btn btn-outline btn-block" style="margin-bottom:14px;">Generate a synthesis prompt</button>
+            <div id="synthesisPromptArea"></div>
+          </section>
+        </div>
+
+        <section class="card card-pad fade-in">
+          <p class="card-title">Past paper log</p>
+          <p class="card-sub">Every attempt, tracked over time, so you can actually see your exam-condition performance moving.</p>
+
+          <div class="grid grid-4" style="gap:8px;margin-bottom:10px;">
+            <select id="paperSubject" class="select"></select>
+            <input id="paperName" type="text" class="input" placeholder="Paper, e.g. Paper 1 June 2023" />
+            <input id="paperScore" type="number" min="0" max="100" class="input" placeholder="Score %" />
+            <input id="paperMinutes" type="number" min="0" class="input" placeholder="Minutes taken" />
+          </div>
+          <div style="display:flex;gap:8px;margin-bottom:16px;">
+            <input id="paperNotes" type="text" class="input" placeholder="Notes: what went wrong, what to revise next" style="flex:1;" />
+            <button id="btnAddPaper" class="btn btn-primary btn-sm">Log attempt</button>
+          </div>
+
+          <div id="paperHistory"></div>
+        </section>
       </div>
 
       <footer class="site-foot">The A* Mentor. Your study data stays in your browser's local storage.</footer>
@@ -39,35 +96,194 @@
   'use strict';
   const M = window.MentorShared;
   let state = M.loadState();
+  const ACCENT_VAR = { bio: '--bio', maths: '--maths', econ: '--econ' };
+  let sprintMinutes = 60;
+  let currentPair = null;
+
+  function subjectOptions() {
+    return Object.keys(M.SUBJECT_LABELS).map(s => `<option value="${s}">${M.SUBJECT_LABELS[s]}</option>`).join('');
+  }
+  document.getElementById('synthesisSubject').innerHTML = subjectOptions();
+  document.getElementById('paperSubject').innerHTML = subjectOptions();
+
+  function playBeepSequence() {
+    try {
+      const AudioCtx = window.AudioContext || window.webkitAudioContext;
+      const ctx = new AudioCtx();
+      [660, 880, 1046.5].forEach((freq, i) => {
+        const start = ctx.currentTime + i * 0.22;
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = 'sine';
+        osc.frequency.value = freq;
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        gain.gain.setValueAtTime(0.0001, start);
+        gain.gain.exponentialRampToValueAtTime(0.28, start + 0.02);
+        gain.gain.exponentialRampToValueAtTime(0.0001, start + 0.2);
+        osc.start(start);
+        osc.stop(start + 0.22);
+      });
+    } catch (err) { console.error('Web Audio playback failed.', err); }
+  }
+  function notifyDone(title, body) {
+    if ('Notification' in window) {
+      if (Notification.permission === 'granted') { new Notification(title, { body }); return; }
+      if (Notification.permission !== 'denied') { Notification.requestPermission().then((perm) => { if (perm === 'granted') new Notification(title, { body }); else alert(title + '. ' + body); }); return; }
+    }
+    alert(title + '. ' + body);
+  }
+  if ('Notification' in window && Notification.permission === 'default') Notification.requestPermission().catch(() => {});
+
+  function formatClock(total) {
+    const m = String(Math.floor(total / 60)).padStart(2, '0');
+    const s = String(total % 60).padStart(2, '0');
+    return `${m}:${s}`;
+  }
+
+  const DURATIONS = [30, 45, 60, 90, 120];
+  document.getElementById('durationPicker').innerHTML = DURATIONS.map(d => `
+    <button type="button" class="chip" data-duration="${d}" style="${d === sprintMinutes ? 'border-color:var(--burgundy-light);color:var(--burgundy-light);' : ''}">${d} min</button>
+  `).join('');
+
+  let seconds = sprintMinutes * 60;
+  let interval = null;
+  let running = false;
+  const display = document.getElementById('sprintDisplay');
+  const status = document.getElementById('sprintStatus');
+  function updateDisplay() { display.textContent = formatClock(seconds); }
+  function resetTimer() { running = false; clearInterval(interval); seconds = sprintMinutes * 60; status.textContent = 'Ready'; updateDisplay(); }
+
+  document.getElementById('durationPicker').addEventListener('click', (e) => {
+    const btn = e.target.closest('[data-duration]');
+    if (!btn) return;
+    sprintMinutes = parseInt(btn.dataset.duration, 10);
+    document.querySelectorAll('#durationPicker [data-duration]').forEach(b => { b.style.borderColor = 'var(--line)'; b.style.color = 'var(--ink2)'; });
+    btn.style.borderColor = 'var(--burgundy-light)'; btn.style.color = 'var(--burgundy-light)';
+    resetTimer();
+  });
+
+  document.getElementById('btnSprintStart').addEventListener('click', () => {
+    if (running) return;
+    running = true;
+    status.textContent = 'In progress';
+    interval = setInterval(() => {
+      seconds -= 1;
+      updateDisplay();
+      if (seconds <= 0) {
+        clearInterval(interval);
+        running = false;
+        status.textContent = 'Time is up';
+        playBeepSequence();
+        notifyDone('Timed practice complete', 'Log your score below while it is fresh.');
+        document.getElementById('paperMinutes').value = sprintMinutes;
+        document.getElementById('paperName').focus();
+        setTimeout(() => { resetTimer(); }, 3000);
+      }
+    }, 1000);
+  });
+  document.getElementById('btnSprintPause').addEventListener('click', () => { if (!running) return; running = false; clearInterval(interval); status.textContent = 'Paused'; });
+  document.getElementById('btnSprintReset').addEventListener('click', resetTimer);
+  updateDisplay();
+
+  function renderSynthesisPrompt() {
+    const area = document.getElementById('synthesisPromptArea');
+    if (!currentPair) { area.innerHTML = ''; return; }
+    const [a, b] = currentPair;
+    area.innerHTML = `
+      <div class="row" style="flex-direction:column;align-items:flex-start;gap:8px;padding:14px;">
+        <p class="prose-serif" style="margin:0;font-size:13.5px;">Explain how <b>${M.escapeHtml(a.leafName)}</b> relates to <b>${M.escapeHtml(b.leafName)}</b>.</p>
+        <p style="font-size:11px;color:var(--ink3);margin:0;">${M.escapeHtml(a.topicName)} and ${M.escapeHtml(b.topicName)}, ${M.SUBJECT_LABELS[a.subject]}</p>
+        <button type="button" id="btnMarkSynthesised" class="btn btn-primary btn-sm">Mark as synthesised</button>
+      </div>
+    `;
+    document.getElementById('btnMarkSynthesised').addEventListener('click', () => {
+      const leafA = state.syllabus[a.subject][a.topicName][a.leafName];
+      const leafB = state.syllabus[b.subject][b.topicName][b.leafName];
+      leafA.lastRevised = Date.now();
+      leafB.lastRevised = Date.now();
+      state.weekendSprint.synthesisSessions.push({ id: M.uid(), subjectA: a.subject, topicA: a.leafName, subjectB: b.subject, topicB: b.leafName, date: M.todayDateString() });
+      M.saveState(state);
+      currentPair = null;
+      renderSynthesisPrompt();
+      renderStats();
+    });
+  }
+  document.getElementById('btnGeneratePair').addEventListener('click', () => {
+    const subject = document.getElementById('synthesisSubject').value;
+    currentPair = M.pickRandomTopicPair(subject);
+    renderSynthesisPrompt();
+  });
+
+  function renderPaperHistory() {
+    const entries = state.weekendSprint.pastPapers.slice().sort((a, b) => b.id.localeCompare(a.id));
+    const el = document.getElementById('paperHistory');
+    if (!entries.length) { el.innerHTML = '<p style="font-size:12px;color:var(--ink3);margin:0;">No attempts logged yet.</p>'; return; }
+    el.innerHTML = entries.map(p => `
+      <div class="row">
+        <span style="width:8px;height:8px;border-radius:50%;background:var(${ACCENT_VAR[M.SYLLABUS[p.subject].accent]});flex-shrink:0;"></span>
+        <span style="flex:1;min-width:0;">
+          <span class="row-title truncate" style="display:block;">${M.escapeHtml(p.paper || 'Untitled paper')}</span>
+          <span class="row-meta">${M.SUBJECT_LABELS[p.subject]} &middot; ${M.escapeHtml(p.date)}${p.minutesTaken ? ` &middot; ${p.minutesTaken} min` : ''}${p.notes ? ` &middot; ${M.escapeHtml(p.notes)}` : ''}</span>
+        </span>
+        <span style="font-family:var(--font-mono);font-weight:700;font-size:14px;">${p.scorePercent}%</span>
+        <button type="button" data-delete-paper="${p.id}" class="btn btn-sm btn-danger">Remove</button>
+      </div>
+    `).join('');
+  }
+  document.getElementById('paperHistory').addEventListener('click', (e) => {
+    const btn = e.target.closest('[data-delete-paper]');
+    if (!btn) return;
+    state.weekendSprint.pastPapers = state.weekendSprint.pastPapers.filter(p => p.id !== btn.dataset.deletePaper);
+    M.saveState(state);
+    renderPaperHistory();
+    renderStats();
+  });
+
+  document.getElementById('btnAddPaper').addEventListener('click', () => {
+    const subject = document.getElementById('paperSubject').value;
+    const paper = document.getElementById('paperName').value.trim();
+    const scoreRaw = document.getElementById('paperScore').value;
+    if (!scoreRaw) { alert('Enter a score percentage to log this attempt.'); return; }
+    const entry = {
+      id: M.uid(),
+      subject,
+      paper,
+      scorePercent: Math.max(0, Math.min(100, parseInt(scoreRaw, 10))),
+      minutesTaken: document.getElementById('paperMinutes').value ? parseInt(document.getElementById('paperMinutes').value, 10) : null,
+      notes: document.getElementById('paperNotes').value.trim(),
+      date: M.todayDateString(),
+    };
+    state.weekendSprint.pastPapers.push(entry);
+    M.saveState(state);
+    document.getElementById('paperName').value = '';
+    document.getElementById('paperScore').value = '';
+    document.getElementById('paperMinutes').value = '';
+    document.getElementById('paperNotes').value = '';
+    renderPaperHistory();
+    renderStats();
+  });
+
+  function renderStats() {
+    const dates = new Set();
+    state.weekendSprint.pastPapers.forEach(p => dates.add(p.date));
+    state.weekendSprint.synthesisSessions.forEach(s => dates.add(s.date));
+    document.getElementById('statStreak').textContent = String(M.computeStreakFromDates(Array.from(dates)));
+    document.getElementById('statPapers').textContent = String(state.weekendSprint.pastPapers.length);
+    document.getElementById('statSynthesis').textContent = String(state.weekendSprint.synthesisSessions.length);
+    const scores = state.weekendSprint.pastPapers.map(p => p.scorePercent);
+    document.getElementById('statAvgScore').textContent = scores.length ? `${Math.round(scores.reduce((a, b) => a + b, 0) / scores.length)}%` : '-';
+  }
 
   function render() {
     const weekend = M.isWeekend();
     document.getElementById('weekendSubtitle').textContent = weekend ? 'Active now. Make it count.' : 'Only active on Saturdays and Sundays.';
     document.getElementById('weekendLockNotice').style.display = weekend ? 'none' : 'block';
-    document.getElementById('weekendContent').style.display = weekend ? 'grid' : 'none';
-
-    document.getElementById('weekendContent').innerHTML = `
-      <label class="card card-pad fade-in" style="cursor:pointer;display:flex;gap:12px;align-items:flex-start;">
-        <input type="checkbox" data-key="pastPaperDone" ${state.weekendSprint.pastPaperDone ? 'checked' : ''} />
-        <span>
-          <span style="display:block;font-family:var(--font-display);font-size:15px;font-weight:600;${state.weekendSprint.pastPaperDone ? 'color:var(--ok);text-decoration:line-through;' : ''}">Full past paper practice</span>
-          <span style="display:block;font-size:12px;color:var(--ink3);margin-top:5px;">Complete a full timed past paper under exam conditions.</span>
-        </span>
-      </label>
-      <label class="card card-pad fade-in" style="cursor:pointer;display:flex;gap:12px;align-items:flex-start;">
-        <input type="checkbox" data-key="synthesisDone" ${state.weekendSprint.synthesisDone ? 'checked' : ''} />
-        <span>
-          <span style="display:block;font-family:var(--font-display);font-size:15px;font-weight:600;${state.weekendSprint.synthesisDone ? 'color:var(--ok);text-decoration:line-through;' : ''}">Deep syllabus synthesis</span>
-          <span style="display:block;font-size:12px;color:var(--ink3);margin-top:5px;">Connect topics across units into one cohesive mental model.</span>
-        </span>
-      </label>
-    `;
+    document.getElementById('weekendContent').style.display = weekend ? 'block' : 'none';
+    if (!weekend) return;
+    renderPaperHistory();
+    renderStats();
   }
-
-  document.getElementById('weekendContent').addEventListener('click', (e) => {
-    const cb = e.target.closest('input[type="checkbox"]');
-    if (cb) { state.weekendSprint[cb.dataset.key] = cb.checked; M.saveState(state); render(); }
-  });
 
   render();
 })();

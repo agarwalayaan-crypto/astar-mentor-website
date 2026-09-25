@@ -160,7 +160,11 @@
         blurtingLastDone: null, blurtingCount: 0, blurtingHistory: [],
         weakSpotLastDone: null, weakSpotCount: 0, weakSpotHistory: [],
       },
-      weekendSprint: { pastPaperDone: false, synthesisDone: false },
+      weekendSprint: {
+        pastPapers: [],        // { id, subject, paper, scorePercent, minutesTaken, notes, date }
+        synthesisSessions: [], // { id, subjectA, topicA, subjectB, topicB, date }
+      },
+      examDates: { biology: null, maths: null, economics: null },
     };
   }
 
@@ -181,6 +185,9 @@
       merged.freePeriodUsage = Object.assign({}, defaults.freePeriodUsage, parsed.freePeriodUsage || {});
       merged.afterSchool = Object.assign({}, defaults.afterSchool, parsed.afterSchool || {});
       merged.weekendSprint = Object.assign({}, defaults.weekendSprint, parsed.weekendSprint || {});
+      merged.weekendSprint.pastPapers = Array.isArray(merged.weekendSprint.pastPapers) ? merged.weekendSprint.pastPapers : [];
+      merged.weekendSprint.synthesisSessions = Array.isArray(merged.weekendSprint.synthesisSessions) ? merged.weekendSprint.synthesisSessions : [];
+      merged.examDates = Object.assign({}, defaults.examDates, parsed.examDates || {});
       merged.homework = Array.isArray(parsed.homework) ? parsed.homework : [];
       merged.priorityRanking = Array.isArray(parsed.priorityRanking) ? parsed.priorityRanking : [];
       return merged;
@@ -214,6 +221,34 @@
   function formatDateShort(date) { return date.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' }); }
   function todayDateString() { return new Date().toDateString(); }
   function isWeekend() { const d = new Date().getDay(); return d === 0 || d === 6; }
+
+  function computeStreakFromDates(dateStrings) {
+    const dates = new Set(dateStrings);
+    let streak = 0;
+    const cursor = new Date();
+    while (dates.has(cursor.toDateString())) { streak++; cursor.setDate(cursor.getDate() - 1); }
+    return streak;
+  }
+
+  function pickRandomTopicPair(subject) {
+    const leaves = ALL_LEAVES.filter(l => l.subject === subject);
+    if (leaves.length < 2) return null;
+    const distinctTopics = [...new Set(leaves.map(l => l.topicName))];
+    let first = leaves[Math.floor(Math.random() * leaves.length)];
+    let candidates = leaves.filter(l => l.topicName !== first.topicName);
+    if (!candidates.length) candidates = leaves.filter(l => l !== first);
+    const second = candidates[Math.floor(Math.random() * candidates.length)];
+    return [first, second];
+  }
+
+  function daysUntil(dateString) {
+    if (!dateString) return null;
+    const target = new Date(dateString);
+    target.setHours(0, 0, 0, 0);
+    const now = new Date();
+    now.setHours(0, 0, 0, 0);
+    return Math.round((target - now) / 86400000);
+  }
 
   function getRetentionBadge(lastRevised) {
     if (!lastRevised) return { label: 'Not revised', cls: 'badge-neutral' };
@@ -312,6 +347,9 @@
     formatDateShort,
     todayDateString,
     isWeekend,
+    computeStreakFromDates,
+    pickRandomTopicPair,
+    daysUntil,
     getRetentionBadge,
     daysAgoLabel,
     computeHighPriorityCount,
